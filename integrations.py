@@ -67,6 +67,7 @@ def build_parser():
     # Parser for create
     parser_create = subparsers.add_parser('create', help='Create a set of new integrations')
     parser_create.add_argument('-f', '--file', help="Config file containing info about the integrations", required=True)
+    parser_create.add_argument('--no-outfile', help="Disable the creation of a JSON file mapping created integration names to Kibana ids", action='store_false', dest='outfile')
 
     # Parser for view
     parser_view = subparsers.add_parser('view', help="See the currently existing integrations")
@@ -99,17 +100,17 @@ def main():
         
     run_command(parser)
 
-    with open(args.file) as f:
-        conf = json.load(f)
+    #with open(args.file) as f:
+    #    conf = json.load(f)
         
-    api_utils.validate_key(conf['api_key'], conf['kibana_url'])
+    #api_utils.validate_key(conf['api_key'], conf['kibana_url'])
 
-    i = 1
-    for node in conf['nodes']:
-        print(f"Creating integrations for node {i} of {len(conf['nodes'])} ({node['hostname']})")
-        i += 1
+    #i = 1
+    #for node in conf['nodes']:
+    #    print(f"Creating integrations for node {i} of {len(conf['nodes'])} ({node['hostname']})")
+    #    i += 1
 
-        create_integrations(node, conf['api_key'], conf['kibana_url'])
+    #    create_integrations(node, conf['api_key'], conf['kibana_url'])
 
 
 if __name__ == "__main__":
