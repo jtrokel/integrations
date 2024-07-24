@@ -1,3 +1,4 @@
+import constants
 from utils import api_utils, file_utils
 
 def create_integrations(node, key, url):
@@ -59,14 +60,14 @@ def iter_nodes(conf, args):
         hostname = node['hostname']
         for group in node['groups']:
             group['hostname'] = hostname
-            req = api_utils.build_request(conf, 'create', group)
+            req = api_utils.build_request(conf, constants.CREATE, group)
             api_utils.request(req, args)
 
 
 def create(args):
     config = file_utils.load_file(args.file)
     if args.check_config:
-        file_utils.check_conf(config, 'create')
+        file_utils.check_conf(config, constants.CREATE)
 
     api_utils.validate_key(config['api_key'], config['kibana_url'])
 

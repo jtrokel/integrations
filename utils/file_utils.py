@@ -1,5 +1,7 @@
 import json
 
+import constants
+
 def load_file(infile):
     with open(infile) as f:
         try:
@@ -56,7 +58,7 @@ def cc_helper(conf, expected):
 
 def check_conf(config, mode):
     ccs = {
-        'create': {
+        constants.CREATE: {
             "api_key": str,
             "kibana_url": str,
             "nodes": [{
@@ -69,8 +71,8 @@ def check_conf(config, mode):
                 }]
             }]
         },
-        'view':   {},
-        'delete': {}
+        constants.VIEW:   {},
+        constants.DELETE: {}
     } 
 
     check = cc_helper(config, ccs[mode])

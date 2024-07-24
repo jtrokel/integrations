@@ -3,6 +3,9 @@ Functions that interact with the kibana API
 """
 
 import requests
+import json
+
+import constants
 
 def validate_key(key, url):
     r = requests.get(f"{url}api/fleet/agent_policies", headers={"Authorization": f"ApiKey {key}"})
@@ -75,22 +78,33 @@ def br_delete(config):
 
 
 def build_request(config, mode, group=None):
-    if mode == 'create':
+    if mode == constants.CREATE:
         return br_create(config, group)
-    elif mode == 'delete':
+    elif mode == constants.DELETE:
         return br_delete(config)
-    elif mode == 'view':
+    elif mode == constants.VIEW:
         return br_view(config)
     else:
         print("what the")
         exit(1)
 
 
-def request(req, args):
-    response = requests.request(*req) # Req will contain a tuple: (<method>, <url>, ...)
+def request(req, args, mode):
+    if mode == constants.CREATE:
+        response = requests.request(req[0], req[1], headers=req[2], json=req[3])
+    elif mode == constants.DELETE:
+        pass
+    elif mode == constants.VIEW:
+        pass
+    else:
+        print("invalid mode")
+        exit(1)
+
     if response.status_code == 409:
         print(response.text)
     
     if args.outfile:
-        print(response.json)
+        int_id = response.json()['item']['id']
+        int_name = response.json()['item']['name']
+        print(f"{int_name}: {int_id}")
 
