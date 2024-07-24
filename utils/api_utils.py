@@ -3,9 +3,9 @@ Functions that interact with the kibana API
 """
 
 import requests
-import json
 
 import constants
+from utils import file_utils
 
 def validate_key(key, url):
     r = requests.get(f"{url}api/fleet/agent_policies", headers={"Authorization": f"ApiKey {key}"})
@@ -103,8 +103,6 @@ def request(req, args, mode):
     if response.status_code == 409:
         print(response.text)
     
-    if args.outfile:
-        int_id = response.json()['item']['id']
-        int_name = response.json()['item']['name']
-        print(f"{int_name}: {int_id}")
-
+    int_id = response.json()['item']['id']
+    int_name = response.json()['item']['name']
+    return {int_name: int_id}

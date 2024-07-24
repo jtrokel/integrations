@@ -80,3 +80,17 @@ def check_conf(config, mode):
     print(check[1])
     exit(1) if not check[0] else exit(0)
 
+
+def update_idmap(new_map, args):
+    with open(args.out, mode='r+') as outfile:
+        try:
+            file_map = json.load(outfile)
+            file_map.update(new_map)
+            outfile.seek(0)
+            json.dump(file_map, outfile)
+            outfile.truncate()
+        except json.decoder.JSONDecodeError:
+            print(f"Failed to parse JSON in {outfile}.")
+            exit(1)
+        
+

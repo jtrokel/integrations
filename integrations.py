@@ -11,14 +11,14 @@ from utils import api_utils
 from modes import create, view, delete 
 
 def build_parser():
-    parser = argparse.ArgumentParser("integrations")
+    parser = argparse.ArgumentParser(prog="integrations", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--check-config', action='store_true', help="Validate the structure of the config file passed to -f and do not make any HTTP requests.")
     subparsers = parser.add_subparsers(dest='command', help="Mode of operation for integrations.py.")
     
     # Parser for create
     parser_create = subparsers.add_parser('create', help='Create a set of new integrations')
     parser_create.add_argument('-f', '--file', help="Config file containing info about the integrations", required=True)
-    parser_create.add_argument('-o', '--out', help="Path to output file containing mapping of created integrations' names to ids")
+    parser_create.add_argument('-o', '--out', help="Path to output file containing mapping of created integrations' names to ids. Defaults to config/id-map.json", default=constants.ROOT_DIR + "/config/id-map.json")
     parser_create.add_argument('--no-outfile', help="Disable the creation of a JSON file mapping created integration names to Kibana ids", action='store_false', dest='outfile')
 
     # Parser for view
@@ -30,8 +30,24 @@ def build_parser():
     return parser
 
 
+def validate_args(args):
+    try:
+        f = open(args.out)
+        f.close()
+    except OSError:
+        print(f"Could not open file {args.out}")
+
+    if args.out and not args.outfile:
+        print("Can only specify at most one of -o(--out) and --no-outfile.")
+        exit(1)
+    # Can add more as needed
+
+
 def run_command(parser):
     args = parser.parse_args()
+
+    validate_args(args)
+
     cmd = args.command
 
     modes = {

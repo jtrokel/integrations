@@ -52,6 +52,9 @@ def create_integrations(node, key, url):
 
 
 def iter_nodes(conf, args):
+    if args.outfile: 
+        id_map = dictionary()
+
     i = 1
     for node in conf['nodes']:
         print(f"Creating integrations for node {i} of {len(conf['nodes'])} ({node['hostname']})")
@@ -61,7 +64,12 @@ def iter_nodes(conf, args):
         for group in node['groups']:
             group['hostname'] = hostname
             req = api_utils.build_request(conf, constants.CREATE, group)
-            api_utils.request(req, args)
+            mapping = api_utils.request(req, args)
+            if args.outfile:
+                id_map.update(mapping)
+
+    if args.outfile:
+        file_utils.update_idmap(id_map, args)
 
 
 def create(args):
