@@ -93,4 +93,3 @@ def update_idmap(new_map, args):
             print(f"Failed to parse JSON in {outfile}.")
             exit(1)
         
-

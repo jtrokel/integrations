@@ -53,7 +53,7 @@ def create_integrations(node, key, url):
 
 def iter_nodes(conf, args):
     if args.outfile: 
-        id_map = dictionary()
+        id_map = {}
 
     i = 1
     for node in conf['nodes']:

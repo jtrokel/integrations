@@ -34,8 +34,15 @@ def validate_args(args):
     try:
         f = open(args.out)
         f.close()
+    except FileNotFoundError:
+        print(f"Could not find file {args.out}.")
+        cont = input("Do you want to continue and create it automatically? (y/n): ")
+        if cont != 'y':
+            print("Exiting...")
+            exit(0)
     except OSError:
-        print(f"Could not open file {args.out}")
+        print(f"Error opening {args.out}. Try checking its permissions...")
+        exit(1)
 
     if args.out and not args.outfile:
         print("Can only specify at most one of -o(--out) and --no-outfile.")
