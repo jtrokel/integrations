@@ -64,7 +64,7 @@ def iter_nodes(conf, args):
         for group in node['groups']:
             group['hostname'] = hostname
             req = api_utils.build_request(conf, constants.CREATE, group)
-            mapping = api_utils.request(req, args)
+            mapping = api_utils.request(req, args, constants.CREATE)
             if args.outfile:
                 id_map.update(mapping)
 
@@ -76,6 +76,13 @@ def create(args):
     config = file_utils.load_file(args.file)
     if args.check_config:
         file_utils.check_conf(config, constants.CREATE)
+
+    if args.outfile:
+        try:
+            f = open(args.out, mode='x')
+            f.close()
+        except FileExistsError:
+            pass
 
     api_utils.validate_key(config['api_key'], config['kibana_url'])
 
