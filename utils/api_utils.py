@@ -102,7 +102,8 @@ def request(req, args, mode):
 
     if response.status_code == 409:
         print(response.text)
-    
+        return {}
+
     int_id = response.json()['item']['id']
     int_name = response.json()['item']['name']
     return {int_name: int_id}

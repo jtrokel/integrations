@@ -1,4 +1,5 @@
 import json
+import os
 
 import constants
 
@@ -8,7 +9,7 @@ def load_file(infile):
             config = json.load(f)
             return config
         except json.decoder.JSONDecodeError:
-            print(f"Failed to parse JSON in {infile}. Ensure that it contains valid JSON.")
+            print(f"Failed to parse JSON in {infile.name}. Ensure that it contains valid JSON.")
             exit(1)
 
 
@@ -81,15 +82,25 @@ def check_conf(config, mode):
     exit(1) if not check[0] else exit(0)
 
 
+def try_init_json(path):
+    if not os.path.isfile(path):
+        with open(path, mode='w') as jf:
+            json.dump({}, jf)
+
+
 def update_idmap(new_map, args):
     with open(args.out, mode='r+') as outfile:
         try:
-            file_map = json.load(outfile)
+            if os.path.getsize(args.out) > 0:
+                file_map = json.load(outfile)
+            else:
+                file_map = {}
+
             file_map.update(new_map)
             outfile.seek(0)
             json.dump(file_map, outfile)
             outfile.truncate()
         except json.decoder.JSONDecodeError:
-            print(f"Failed to parse JSON in {outfile}.")
+            print(f"Failed to parse JSON in {outfile.name}.")
             exit(1)
         
