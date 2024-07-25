@@ -1,106 +1,134 @@
+"""Functions for working with local files.
+"""
+
 import json
 import os
+import sys
+
+import jsonschema
 
 import constants
 
 def load_file(infile):
-    with open(infile) as f:
+    """Load JSON from file."""
+    with open(infile) as infd:
         try:
-            config = json.load(f)
+            config = json.load(infd)
             return config
         except json.decoder.JSONDecodeError:
-            print(f"Failed to parse JSON in {infile.name}. Ensure that it contains valid JSON.")
-            exit(1)
-
-
-def cc_helper(conf, expected):
-    for k, v in expected.items():
-        if isinstance(v, type):
-            # Ensure conf has expected key and correct type for that key's value
-
-            if k not in conf:
-                return (False, f"Expected to find key {k} but did not.")
-            if not isinstance(conf[k], v):
-                return (False, f"Expected key {k} to have type {v.__name__}, but it had type {type(conf[k]).__name__}.")
-        
-        elif isinstance(v, dict):
-            # Ensure conf has expected nested dictionary key and that key maps to a dict, and
-            # Recursively check the nested dictionary
-
-            if k not in conf:
-                return (False, f"Expected to find key {k} but did not.")
-            if not isinstance(conf[k], dict):
-                return (False, f"Expected key {k} to have type dict, but it had type {type(conf[k]).__name__}.")
-            
-            subcheck = cc_helper(conf[k], v)
-            if not subcheck[0]: # Sub-dictionary had an issue
-                return (subcheck[0], f"Under {k}: {subcheck[1]}")
-
-        elif isinstance(v, list):
-            # Ensure conf has expected list key and that key maps to a list, and
-            # Iteratively check each item in the list
-
-            if k not in conf:
-                return (False, f"Expected to find key {k} but did not.")
-            if not isinstance(conf[k], list):
-                return (False, f"Expected key {k} to have type list, but it had type {type(conf[k]).__name__}.")
-
-            i = 0
-            for item in conf[k]:
-                # Assuming each item in the list has the same structure
-                subcheck = cc_helper(item, v[0])
-                if not subcheck[0]:
-                    return (subcheck[0], f"Element {i} in {k}: {subcheck[1]}")
-                i += 1
-
-    # Everything looks good
-    return (True, "Config file is structured correctly.") 
+            print(f"Failed to parse JSON in {infile}. Ensure that it contains valid JSON.")
+            sys.exit(1)
 
 
 def check_conf(config, mode):
-    ccs = {
+    """Validate config against a schema, chosen depending on mode."""
+    schemas = {
         constants.CREATE: {
-            "api_key": str,
-            "kibana_url": str,
-            "nodes": [{
-                "hostname": str,
-                "groups": [{
-                    "policy_id": str,
-                    "pmproxy_url": str,
-                    "interval": str,
-                    "metrics": str
-                }]
-            }]
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "kibana_url": {
+                    "type": "string"
+                },
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "hostname": {
+                                "type": "string"
+                            },
+                            "groups": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "policy_id": {
+                                            "type": "string"
+                                        },
+                                        "pmproxy_url": {
+                                            "type": "string"
+                                        },
+                                        "interval": {
+                                            "type": "string"
+                                        },
+                                        "metrics": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "policy_id",
+                                        "pmproxy_url",
+                                        "interval",
+                                        "metrics"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "hostname",
+                            "groups"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "api_key",
+                "kibana_url",
+                "nodes"
+            ]
         },
         constants.VIEW:   {},
         constants.DELETE: {}
-    } 
+    }
 
-    check = cc_helper(config, ccs[mode])
+    try:
+        jsonschema.validate(config, schemas[mode])
+    except jsonschema.exceptions.ValidationError as exception:
+        print(exception.message)
+        sys.exit(1)
 
-    print(check[1])
-    exit(1) if not check[0] else exit(0)
+    print("Config file is valid.")
+    sys.exit(0)
 
 
 def try_init_json(path):
+    """Create a JSON file if it doesn't exist."""
+    try:
+        tmp = open(path)
+        tmp.close()
+    except FileNotFoundError:
+        print(f"Could not find file {path}.")
+        cont = input("Do you want to continue and create it automatically? (y/n): ")
+        if cont != 'y':
+            print("Exiting...")
+            sys.exit(0)
+    except OSError:
+        print(f"Error opening {path}. Try checking its permissions.")
+        sys.exit(1)
+
     if not os.path.isfile(path):
-        with open(path, mode='w') as jf:
-            json.dump({}, jf)
+        with open(path, mode='w') as newfile:
+            json.dump({}, newfile)
 
 
 def update_idmap(new_map, args):
+    """Update the name->id mapping with the newly created integrations."""
     with open(args.out, mode='r+') as outfile:
         try:
             if os.path.getsize(args.out) > 0:
                 file_map = json.load(outfile)
             else:
                 file_map = {}
-
             file_map.update(new_map)
             outfile.seek(0)
             json.dump(file_map, outfile)
+            # Cleans up if the original map was longer than the new one:
+            # Shouldn't happen, but just in case.
             outfile.truncate()
         except json.decoder.JSONDecodeError:
-            print(f"Failed to parse JSON in {outfile.name}.")
-            exit(1)
-        
+            print(f"Failed to parse JSON in {args.out}.")
+            sys.exit(1)

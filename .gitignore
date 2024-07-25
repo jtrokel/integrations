@@ -1,2 +1,9 @@
+# Compiled and optimized stuff
 __pycache__/
 *.py[cod]
+
+# venv
+.venv/
+
+# __init__.py for pylint
+__init__.py
