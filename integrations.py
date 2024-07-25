@@ -16,19 +16,17 @@ from modes import create, view, delete
 
 def build_parser():
     """Build the command-line argument parser."""
-    parser = argparse.ArgumentParser(prog="integrations",
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--check-config', action='store_true',
-                        help="Validate the structure of the config file"
-                        " passed to -f and do not make any HTTP requests.")
+    parser = argparse.ArgumentParser("./integrations.py")
     subparsers = parser.add_subparsers(dest='command',
                                        help="Mode of operation for integrations.py.")
 
     # Parser for create
     parser_create = subparsers.add_parser('create', help='Create a set of new integrations')
-    parser_create.add_argument('-f', '--file',
-                               help="Config file containing info about the integrations",
-                               required=True)
+    parser_create.add_argument('file',
+                               help="Config file containing info about the integrations")
+    parser_create.add_argument('--check-config', action='store_true',
+                               help="Validate the structure of the config file"
+                               " and do not make any HTTP requests.")
     parser_create.add_argument('-o', '--out',
                                help="Path to output file containing mapping of"
                                " created integrations' names to ids."
@@ -44,6 +42,18 @@ def build_parser():
 
     # Parser for delete
     parser_delete = subparsers.add_parser('delete', help="Delete integrations")
+    parser_delete.add_argument('file',
+                               help="File containing names or ids of integrations to delete")
+    parser_delete.add_argument('--check-config', action='store_true',
+                               help="Validate the structure of the config file"
+                               " and do not make any HTTP requests.")
+    parser_delete.add_argument('--regex',
+                               help="Treat integration names in file as regex"
+                               " when deciding which integrations to delete",
+                               action='store_true')
+    parser_delete.add_argument('-i', '--interactive',
+                               help="Ask for confirmation before each deletion",
+                               action='store_true')
 
     return parser
 
@@ -52,20 +62,19 @@ def validate_args(args):
     """Perform various validity checks on command-line arguments.
 
     Currently:
-    Check that at most one of -o and --no-outfile are specified.
+    Create: check that at most one of -o and --no-outfile are specified.
     """
-    if args.out and not args.outfile:
-        print("Can only specify at most one of -o(--out) and --no-outfile.")
-        sys.exit(1)
+    if args.command == 'create':
+        if args.out and not args.outfile:
+            print("Can only specify at most one of -o(--out) and --no-outfile.")
+            sys.exit(1)
     # Can add more as needed
 
 
 def run_command(parser):
     """Run the command provided by the user."""
     args = parser.parse_args()
-
     validate_args(args)
-
     cmd = args.command
 
     modes = {

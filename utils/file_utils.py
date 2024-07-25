@@ -82,13 +82,47 @@ def check_conf(config, mode):
             ]
         },
         constants.VIEW:   {},
-        constants.DELETE: {}
+        constants.DELETE: {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "type": "object",
+            "properties": {
+                "api_key": {
+                    "type": "string"
+                },
+                "kibana_url": {
+                    "type": "string"
+                },
+                "names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [
+                "api_key",
+                "kibana_url"
+            ],
+            "oneOf": [
+                {"required": ["names"]},
+                {"required": ["ids"]}
+            ]
+        }
     }
 
     try:
         jsonschema.validate(config, schemas[mode])
     except jsonschema.exceptions.ValidationError as exception:
+        print("Config file is invalid:")
         print(exception.message)
+        if "is valid under each of" in exception.message:
+            print("Ensure that you haven't specified conflicting keys!") 
         sys.exit(1)
 
     print("Config file is valid.")
