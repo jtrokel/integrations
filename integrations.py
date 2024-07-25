@@ -44,6 +44,13 @@ def build_parser():
     parser_delete = subparsers.add_parser('delete', help="Delete integrations")
     parser_delete.add_argument('file',
                                help="File containing names or ids of integrations to delete")
+    parser_delete.add_argument('-m', '--mapfile',
+                               help="File containing JSON map of integration names to ids",
+                               default=constants.ROOT_DIR + "/config/id-map.json")
+    parser_delete.add_argument('--generate-map',
+                               help="Instead of reading name->id map from a file,"
+                               " generate it by parsing the response from an HTTP request",
+                               action='store_true')
     parser_delete.add_argument('--check-config', action='store_true',
                                help="Validate the structure of the config file"
                                " and do not make any HTTP requests.")

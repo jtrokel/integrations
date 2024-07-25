@@ -9,7 +9,7 @@ import constants
 
 def validate_key(key, url):
     """Ensure api key and Kibana URL are valid."""
-    resp = requests.get(f"{url}api/fleet/agent_policies",
+    resp = requests.get(f"{url}/api/fleet/agent_policies",
                         headers={"Authorization": f"ApiKey {key}"})
 
     if resp.status_code == 404:
@@ -34,7 +34,8 @@ def br_create(config, group):
         "kbn-xsrf": "exists"
     }
 
-    hostname = group['hostname']
+    fqdn = group['fqdn']
+    hostname = fqdn[0:fqdn.find('.')]
 
     body = {
         "policy_id": f"{group['policy_id']}",
@@ -43,7 +44,7 @@ def br_create(config, group):
             'version': '1.20.0',
         },
         "name": f"pcp-{hostname}-{group['interval']}",
-        "description": f"Collect PCP metrics from {hostname} every {group['interval']}",
+        "description": f"Collect PCP metrics from {fqdn} every {group['interval']}",
         "namespace": "default",
         "inputs": {
             "generic-httpjson": {
@@ -54,9 +55,9 @@ def br_create(config, group):
                         "vars": {
                             "data_stream.dataset": "httpjson.pcp",
                             "pipeline": "pmwebapi-parser",
-                            "request_url": f"{group['pmproxy_url']}pmapi/fetch"
-                                           "?hostspec={hostname}.lle.rochester.edu"
-                                           "&client={hostname}.lle.rochester.edu"
+                            "request_url": f"{group['pmproxy_url']}/pmapi/fetch"
+                                           "?hostspec={fqdn}"
+                                           "&client={fqdn}"
                                            "&names={group['metrics']}",
                             "request_interval": f"{group['interval']}",
                             "request_method": "GET",
@@ -72,7 +73,7 @@ def br_create(config, group):
         }
     }
 
-    return ('POST', f"{config['kibana_url']}api/fleet/package_policies", headers, body)
+    return ('POST', f"{config['kibana_url']}/api/fleet/package_policies", headers, body)
 
 
 def br_view(config):

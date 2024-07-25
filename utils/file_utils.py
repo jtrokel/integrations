@@ -38,7 +38,7 @@ def check_conf(config, mode):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "hostname": {
+                            "fqdn": {
                                 "type": "string"
                             },
                             "groups": {
@@ -69,7 +69,7 @@ def check_conf(config, mode):
                             }
                         },
                         "required": [
-                            "hostname",
+                            "fqdn",
                             "groups"
                         ]
                     }
