@@ -1,1 +1,5 @@
 A project for working with Elastic Agent integrations to import PCP metrics from remote hosts.
+
+--regex will delete names that are full matches with provided regex. Ex. foo_bar\d+ will delete
+	foo_bar1 and foo_bar22 but not fizzfoo_bar1. Additionally, if a name in the mapping is matched
+	by multiple provided regexes, integrations.py will only try to delete it once.

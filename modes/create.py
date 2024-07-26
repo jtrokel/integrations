@@ -16,12 +16,13 @@ def iter_nodes(config, args):
 
     i = 1
     for node in config['nodes']:
-        print(f"Creating integrations for node {i} of {len(config['nodes'])} ({node['hostname']})")
+        print(f"Creating integrations for node {i} of {len(config['nodes'])} ({node['fqdn']})")
         i += 1
 
-        hostname = node['hostname']
+        fqdn = node['fqdn']
         for group in node['groups']:
-            group['hostname'] = hostname
+            group['fqdn'] = fqdn
+            # file_utils.expand_metrics(group)
             req = api_utils.build_request(config, constants.CREATE, group)
             mapping = api_utils.request(req, constants.CREATE)
             if args.outfile:
@@ -29,6 +30,7 @@ def iter_nodes(config, args):
 
     if args.outfile:
         file_utils.update_idmap(id_map, args)
+        print(f"Wrote name->id map to {args.out}")
 
 
 def create(args):

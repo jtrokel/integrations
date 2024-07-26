@@ -6,6 +6,8 @@ import os
 import sys
 
 import jsonschema
+# from pcp import pmapi
+# import cpmapi as c_api
 
 import constants
 
@@ -16,7 +18,7 @@ def load_file(infile):
             config = json.load(infd)
             return config
         except json.decoder.JSONDecodeError:
-            print(f"Failed to parse JSON in {infile}. Ensure that it contains valid JSON.")
+            print(f"Failed to parse JSON in {infile}. Ensure that it contains valid JSON.", file=sys.stderr)
             sys.exit(1)
 
 
@@ -119,15 +121,32 @@ def check_conf(config, mode):
     try:
         jsonschema.validate(config, schemas[mode])
     except jsonschema.exceptions.ValidationError as exception:
-        print("Config file is invalid:")
-        print(exception.message)
-        if "is valid under each of" in exception.message:
-            print("Ensure that you haven't specified conflicting keys!") 
+        print("Config file is invalid:", file=sys.stderr)
+        print(exception.message, file=sys.stderr)
+
+        # TODO: fix this super duper jank
+        if "is valid under each of" in exception.message: 
+            print("Ensure that you haven't specified conflicting keys!", file=sys.stderr)
         sys.exit(1)
 
     print("Config file is valid.")
     sys.exit(0)
 
+# Attempt at expanding metric names
+# The pmapi struggles with finding the correct PMNS
+"""
+def expand_metrics(group):
+    expanded = []
+    ctx = pmapi.pmContext(c_api.PM_CONTEXT_HOST, group['fqdn'])
+    
+    def add_metric(name):
+        expanded.append(name)
+    
+    for metric in group['metrics'].split(','):
+        ctx.pmTraversePMNS(metric, add_metric)
+
+    group['metrics'] = ','.join(expanded)
+"""
 
 def try_init_json(path):
     """Create a JSON file if it doesn't exist."""
@@ -141,7 +160,7 @@ def try_init_json(path):
             print("Exiting...")
             sys.exit(0)
     except OSError:
-        print(f"Error opening {path}. Try checking its permissions.")
+        print(f"Error opening {path}. Try checking its permissions.", file=sys.stderr)
         sys.exit(1)
 
     if not os.path.isfile(path):
@@ -164,5 +183,5 @@ def update_idmap(new_map, args):
             # Shouldn't happen, but just in case.
             outfile.truncate()
         except json.decoder.JSONDecodeError:
-            print(f"Failed to parse JSON in {args.out}.")
+            print(f"Failed to parse JSON in {args.out}.", file=sys.stderr)
             sys.exit(1)

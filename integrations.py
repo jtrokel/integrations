@@ -45,7 +45,8 @@ def build_parser():
     parser_delete.add_argument('file',
                                help="File containing names or ids of integrations to delete")
     parser_delete.add_argument('-m', '--mapfile',
-                               help="File containing JSON map of integration names to ids",
+                               help="File containing JSON map of integration names to ids."
+                               " Defaults to config/id-map.json",
                                default=constants.ROOT_DIR + "/config/id-map.json")
     parser_delete.add_argument('--generate-map',
                                help="Instead of reading name->id map from a file,"
@@ -73,7 +74,7 @@ def validate_args(args):
     """
     if args.command == 'create':
         if args.out and not args.outfile:
-            print("Can only specify at most one of -o(--out) and --no-outfile.")
+            print("Can only specify at most one of -o(--out) and --no-outfile.", file=sys.stderr)
             sys.exit(1)
     # Can add more as needed
 
