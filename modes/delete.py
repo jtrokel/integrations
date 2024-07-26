@@ -15,13 +15,12 @@ def handle_names(names, args, kib_info, ids):
     else:
         idmap = file_utils.load_file(args.mapfile)
 
-    print(idmap)
     for name in names:
         if args.regex:
             # Compile each provided regex, then try matching against each name in map
             try:
                 re_name = re.compile(name)
-                for mname, mid in idmap:
+                for mname, mid in idmap.items():
                     opt_name = re_name.match(mname)
                     if opt_name:
                         ids.append(mid)
@@ -36,6 +35,7 @@ def handle_names(names, args, kib_info, ids):
                 print(f"Could not find an integration with the name {name}.", file=sys.stderr)
     
     if ('' in ids) and (not args.generate_map):
+        ids = [i for i in ids if i != '']
         print(f"Some named integrations were not found in the mapfile."
               " integrations.py will still delete all the ones it found"
               " succesfully. If you haven't mistyped the missing integrations,"
@@ -57,6 +57,6 @@ def delete(args):
     if 'names' in config:
         ids = handle_names(config['names'], args, kib_info, ids)
 
-    for i in ids:
+    for i in ids: #TODO: Handle args.interactive
         req = api_utils.build_request(config, constants.DELETE, id_=i)
         api_utils.request(req, constants.DELETE)

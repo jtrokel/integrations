@@ -2,6 +2,7 @@
 """
 
 import sys
+import re
 
 import requests
 
@@ -36,7 +37,8 @@ def generate_map(key, url):
     for integration in resp_body['items']:
         name = integration['name']
         id_ = integration['id']
-        idmap[name] = id_
+        if re.match('^pcp-', name):
+            idmap[name] = id_
 
     return idmap
 
