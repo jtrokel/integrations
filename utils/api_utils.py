@@ -73,9 +73,9 @@ def br_create(config, group):
                             "data_stream.dataset": "httpjson.pcp",
                             "pipeline": "pmwebapi-parser",
                             "request_url": f"{group['pmproxy_url']}/pmapi/fetch"
-                                           "?hostspec={fqdn}"
-                                           "&client={fqdn}"
-                                           "&names={group['metrics']}",
+                                           f"?hostspec={fqdn}"
+                                           f"&client={fqdn}"
+                                           f"&names={group['metrics']}",
                             "request_interval": f"{group['interval']}",
                             "request_method": "GET",
                             "request_redirect_headers_ban_list": [],

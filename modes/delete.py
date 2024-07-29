@@ -36,12 +36,12 @@ def handle_names(names, args, kib_info, ids):
     
     if ('' in ids) and (not args.generate_map):
         ids = [i for i in ids if i != '']
-        print(f"Some named integrations were not found in the mapfile."
+        print("Some named integrations were not found in the mapfile."
               " integrations.py will still delete all the ones it found"
               " succesfully. If you haven't mistyped the missing integrations,"
               " try using --generate-map next run.", file=sys.stderr)
 
-    return list(set(ids)) # Don't want duplicates, and order doesn't matter
+    return (list(set(ids)), idmap) # Don't want duplicates, and order doesn't matter
 
 
 def delete(args):
@@ -55,8 +55,20 @@ def delete(args):
 
     ids = config.get('ids', [])
     if 'names' in config:
-        ids = handle_names(config['names'], args, kib_info, ids)
+        names_info = handle_names(config['names'], args, kib_info, ids)
+        ids = names_info[0]
 
-    for i in ids: #TODO: Handle args.interactive
+    for i in ids:
         req = api_utils.build_request(config, constants.DELETE, id_=i)
+        if args.interactive:
+            if 'names' in config:
+                inv_map = {val: key for key, val in names_info[1].items()}
+                curr_name = inv_map[i]
+                del_this = input(f"Do you want to delete integration {i} ({curr_name})? (y/N)")
+            else:
+                del_this = input(f"Do you want to delete integration {i}? (y/N)")
+
+            if del_this != 'y':
+                continue
+
         api_utils.request(req, constants.DELETE)
