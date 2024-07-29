@@ -27,9 +27,9 @@ def validate_key(key, url):
     return True
 
 
-def generate_map(key, url):
+def generate_map(key, url, extended=False):
     """Create an integration name->id map from the Kibana API."""
-    idmap = {}
+    idmap = defaultdict(dict)
     resp = requests.get(f"{url}/api/fleet/package_policies",
                         headers={"Authorization": f"ApiKey {key}"})
     resp_body = resp.json()
@@ -37,8 +37,13 @@ def generate_map(key, url):
     for integration in resp_body['items']:
         name = integration['name']
         id_ = integration['id']
-        if re.match('^pcp-', name):
-            idmap[name] = id_
+        if re.match(r'^\.pcp-', name):
+            idmap[name]['id'] = id_
+
+        if extended:
+            idmap[name]['enabled'] = (integration['inputs'][0]['enabled'] 
+                                      and integration['inputs'][0]['streams'][0]['enabled'])
+            
 
     return idmap
 
@@ -60,7 +65,7 @@ def br_create(config, group):
             'name': 'httpjson',
             'version': '1.20.0',
         },
-        "name": f"pcp-{hostname}-{group['interval']}",
+        "name": f".pcp-{hostname}-{group['interval']}",
         "description": f"Collect PCP metrics from {fqdn} every {group['interval']}",
         "namespace": "default",
         "inputs": {
@@ -93,7 +98,7 @@ def br_create(config, group):
     return ('POST', f"{config['kibana_url']}/api/fleet/package_policies", headers, body)
 
 
-def br_view(config):
+def br_list(config):
     pass
 
 
@@ -112,8 +117,8 @@ def build_request(config, mode, group=None, id_=None):
         return br_create(config, group)
     if mode == constants.DELETE:
         return br_delete(config, id_)
-    if mode == constants.VIEW:
-        return br_view(config)
+    if mode == constants.LIST:
+        return br_list(config)
 
     print("what the")
     sys.exit(1)
@@ -137,7 +142,7 @@ def request(req, mode):
             print(response.text)
         return {}
 
-    elif mode == constants.VIEW:
+    elif mode == constants.LIST:
         pass
     else:
         print("invalid mode", file=sys.stderr)

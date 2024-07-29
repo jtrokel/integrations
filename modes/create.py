@@ -35,6 +35,7 @@ def iter_nodes(config, args):
 
 def create(args):
     """Load config and perform validations."""
+    web_info = file_utils.read_config()
     config = file_utils.load_file(args.file)
 
     if args.check_config:
@@ -42,6 +43,6 @@ def create(args):
     if args.outfile:
         file_utils.try_init_json(args.out)
 
-    api_utils.validate_key(config['api_key'], config['kibana_url'])
+    api_utils.validate_key(web_info['kibana']['api_key'], web_info['kibana']['kibana_url'])
 
     iter_nodes(config, args)

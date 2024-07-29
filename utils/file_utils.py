@@ -4,12 +4,19 @@
 import json
 import os
 import sys
+import configparser
 
 import jsonschema
 # from pcp import pmapi
 # import cpmapi as c_api
 
 import constants
+
+def read_config():
+    cfg = configparser.ConfigParser()
+    cfg.read(f"{constants.ROOT_DIR}/config/web_config.ini")
+    return cfg
+
 
 def load_file(infile):
     """Load JSON from file."""
@@ -83,7 +90,7 @@ def check_conf(config, mode):
                 "nodes"
             ]
         },
-        constants.VIEW:   {},
+        constants.LIST:   {},
         constants.DELETE: {
             "$schema": "http://json-schema.org/draft-04/schema#",
             "type": "object",

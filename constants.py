@@ -4,7 +4,7 @@
 import os
 
 CREATE = 'create'
-VIEW = 'view'
+LIST = 'list'
 DELETE = 'delete'
 
 ROOT_DIR = os.path.dirname(os.path.realpath(__file__))

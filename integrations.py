@@ -12,7 +12,7 @@ import argparse
 import sys
 
 import constants
-from modes import create, view, delete
+from modes import create, ilist, delete
 
 def build_parser():
     """Build the command-line argument parser."""
@@ -37,8 +37,8 @@ def build_parser():
                                " mapping created integration names to Kibana ids",
                                action='store_false', dest='outfile')
 
-    # Parser for view
-    parser_view = subparsers.add_parser('view', help="See the currently existing integrations")
+    # Parser for list
+    parser_list = subparsers.add_parser('list', help="List the currently existing integrations")
 
     # Parser for delete
     parser_delete = subparsers.add_parser('delete', help="Delete integrations")
@@ -62,6 +62,10 @@ def build_parser():
     parser_delete.add_argument('-i', '--interactive',
                                help="Ask for confirmation before each deletion",
                                action='store_true')
+
+    # Parser for update
+    parser_update = subparsers.add_parser('update', help="Update various things about existing integrations")
+
 
     return parser
 
@@ -87,7 +91,7 @@ def run_command(parser):
 
     modes = {
         constants.CREATE: create.create,
-        constants.VIEW:   view.view,
+        constants.LIST: ilist.ilist,
         constants.DELETE: delete.delete
     }
 

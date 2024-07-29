@@ -45,8 +45,9 @@ def handle_names(names, args, kib_info, ids):
 
 
 def delete(args):
+    web_info = file_utils.read_config()
     config = file_utils.load_file(args.file)
-    kib_info = (config['api_key'], config['kibana_url'])
+    kib_info = (web_info['kibana']['api_key'], web_info['kibana']['kibana_url'])
 
     if args.check_config:
         file_utils.check_conf(config, constants.DELETE)
