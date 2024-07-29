@@ -20,18 +20,20 @@ def handle_names(names, args, kib_info, ids):
             # Compile each provided regex, then try matching against each name in map
             try:
                 re_name = re.compile(name)
-                for mname, mid in idmap.items():
+                for mname, mmap in idmap.items():
                     opt_name = re_name.match(mname)
                     if opt_name:
-                        ids.append(mid)
+                        ids.append(mmap['id'])
 
             except re.error as err:
                 print(err.msg + ' in ' + name, file=sys.stderr)
                 sys.exit(1)
 
         else:
-            ids.append(idmap.get(name, ''))
-            if name not in idmap:
+            if name in idmap:
+                ids.append(idmap[name]['id'])
+            else:
+                ids.append('')
                 print(f"Could not find an integration with the name {name}.", file=sys.stderr)
     
     if ('' in ids) and (not args.generate_map):
@@ -48,6 +50,8 @@ def delete(args):
     web_info = file_utils.read_config()
     config = file_utils.load_file(args.file)
     kib_info = (web_info['kibana']['api_key'], web_info['kibana']['kibana_url'])
+    config['api_key'] = kib_info[0]
+    config['kibana_url'] = kib_info[1]
 
     if args.check_config:
         file_utils.check_conf(config, constants.DELETE)
@@ -63,7 +67,7 @@ def delete(args):
         req = api_utils.build_request(config, constants.DELETE, id_=i)
         if args.interactive:
             if 'names' in config:
-                inv_map = {val: key for key, val in names_info[1].items()}
+                inv_map = {val['id']: key for key, val in names_info[1].items()}
                 curr_name = inv_map[i]
                 del_this = input(f"Do you want to delete integration {i} ({curr_name})? (y/N)")
             else:

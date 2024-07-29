@@ -37,6 +37,8 @@ def create(args):
     """Load config and perform validations."""
     web_info = file_utils.read_config()
     config = file_utils.load_file(args.file)
+    config['api_key'] = web_info['kibana']['api_key']
+    config['kibana_url'] = web_info['kibana']['api_key']
 
     if args.check_config:
         file_utils.check_conf(config, constants.CREATE)
