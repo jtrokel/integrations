@@ -1,1 +1,3 @@
-user
+# Ignore everything in config but the directory itself
+*
+!.gitignore

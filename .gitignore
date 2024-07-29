@@ -7,3 +7,6 @@ __pycache__/
 
 # __init__.py for pylint
 __init__.py
+
+# My own stuff
+TODO
