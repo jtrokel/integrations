@@ -32,15 +32,16 @@ def generate_map(key, url, extended=False):
     """Create an integration name->id map from the Kibana API."""
     idmap = defaultdict(dict)
     resp = requests.get(f"{url}/api/fleet/package_policies",
-                        headers={"Authorization": f"ApiKey {key}"})
+                        headers={"Authorization": f"ApiKey {key}", "kbn-xsrf": "true"})
     resp_body = resp.json()
 
     for integration in resp_body['items']:
         name = integration['name']
         id_ = integration['id']
-        if re.match(r'^\.pcp-', name):
-            idmap[name]['id'] = id_
+        if not re.match(r'^\.pcp-', name):
+            continue
 
+        idmap[name]['id'] = id_
         if extended:
             idmap[name]['enabled'] = (integration['inputs'][0]['enabled'] 
                                       and integration['inputs'][0]['streams'][0]['enabled'])
