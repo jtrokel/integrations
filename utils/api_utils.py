@@ -45,7 +45,12 @@ def generate_map(key, url, extended=False):
         if extended:
             idmap[name]['enabled'] = (integration['inputs'][0]['enabled'] 
                                       and integration['inputs'][0]['streams'][0]['enabled'])
-            
+            idmap[name]['policy_id'] = integration['policy_id']
+            idmap[name]['interval'] = integration['inputs'][0]['streams'][0]['vars']['request_interval']['value']
+            url = re.match(r'https?:\/\/([a-zA-Z0-9\.:]+)\/.*&names=(.*)',
+                           integration['inputs'][0]['streams'][0]['vars']['request_url']['value'])
+            idmap[name]['pmproxy_url'] = url.group(1)
+            idmap[name]['metrics'] = url.group(2)
 
     return idmap
 

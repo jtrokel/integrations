@@ -38,7 +38,7 @@ def create(args):
     web_info = file_utils.read_config()
     config = file_utils.load_file(args.file)
     config['api_key'] = web_info['kibana']['api_key']
-    config['kibana_url'] = web_info['kibana']['api_key']
+    config['kibana_url'] = web_info['kibana']['kibana_url']
 
     if args.check_config:
         file_utils.check_conf(config, constants.CREATE)
