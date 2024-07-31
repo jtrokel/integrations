@@ -1,21 +1,23 @@
 import re
 
-from interactive import commands
+from interactive import commands, classes
 
 
 def selection(page_list):
     cmd = ''
 
     while True:
-        page_list.clear_lines = 8
-        display_page(page_list.pages[page_list.cpage]) 
-        print(f"\nPage {page_list.cpage + 1}/{page_list.npages}\n")
-        print("---COMMANDS---")
-        print(f"{'n: next page':<20}{'p: previous page':<28}{'f: search':<35}{'b: back/done':<20}")
-        print(f"{'sa: select all':<20}{'s<#>: select <#> above':<28}{'s<#>-<#>: select <#>-<#> above':<35}{'<#>j: jump to page <#>':<20}")
-        print(f"{'da: deselect all':<20}{'d<#>: deselect <#> above':<28}{'d<#>-<#>: deselect <#>-<#> above':<35}")
-        cmd = input("\033[1m\033[36mSelection\033[0m>> ")
-        if not commands.handle_select(page_list, cmd):
+        try:
+            page_list.clear_lines = 8
+            display_page(page_list.pages[page_list.cpage]) 
+            print(f"\nPage {page_list.cpage + 1}/{page_list.npages}\n")
+            print("---COMMANDS---")
+            print(f"{'n: next page':<20}{'p: previous page':<28}{'f: search':<35}{'b: back/done':<20}")
+            print(f"{'sa: select all':<20}{'s<#>: select <#> above':<28}{'s<#>-<#>: select <#>-<#> above':<35}{'<#>j: jump to page <#>':<20}")
+            print(f"{'da: deselect all':<20}{'d<#>: deselect <#> above':<28}{'d<#>-<#>: deselect <#>-<#> above':<35}")
+            cmd = input("\033[1m\033[36mSelection\033[0m>> ")
+            commands.handle_select(page_list, cmd)
+        except classes.ExitException:
             break
 
         # print(f"\033[{self.pages[self.cpage].nlines + self.clear_lines}F\033[0J\r", end='', flush=True)

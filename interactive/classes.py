@@ -1,5 +1,9 @@
 import re
 
+class ExitException(Exception):
+    pass
+
+
 class Page:
     def __init__(self, lines, lnums):
         self.nlines = len(lines)
