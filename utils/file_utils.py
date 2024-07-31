@@ -122,7 +122,8 @@ def check_conf(config, mode):
                 {"required": ["names"]},
                 {"required": ["ids"]}
             ]
-        }
+        },
+        constants.UPDATE: {}
     }
 
     try:

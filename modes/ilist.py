@@ -14,7 +14,7 @@ def ilist(args):
 
     idmap = api_utils.generate_map(*kib_info, extended=True)
     print(f"{'Name':<25}{'ID':<45}{'Status'}")
-    for name in idmap:
+    for name in sorted(idmap.keys()):
         enabled = f'{GREEN}enabled{ENDC}' if idmap[name]['enabled'] else f'{RED}disabled{ENDC}'
         line = f"{name:<25}{idmap[name]['id']:<45}{enabled}"
         print(line)

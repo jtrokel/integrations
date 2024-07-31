@@ -12,7 +12,7 @@ import argparse
 import sys
 
 import constants
-from modes import create, ilist, delete
+from modes import create, ilist, delete, update
 
 def build_parser():
     """Build the command-line argument parser."""
@@ -92,7 +92,8 @@ def run_command(parser):
     modes = {
         constants.CREATE: create.create,
         constants.LIST: ilist.ilist,
-        constants.DELETE: delete.delete
+        constants.DELETE: delete.delete,
+        constants.UPDATE: update.update
     }
 
     if cmd not in modes:
