@@ -25,16 +25,26 @@ def selection(page_list):
     return page_list.selected
 
 
-def update(page_list):
+def update(selected, name_map):
+    req_bodies = [] # Will have bodies to send in put requests
+    for integration in selected:
+        req_bodies.append(commands.transform_body(name_map[integration]))
+
     cmd = ''
+    applied = True
 
     while True:
-        print("\n---COMMANDS---")
-        print(f"{'e: enable':<22}{'d: disable':<23}{'v: view info':<22}{'l: list selected':<25}")
-        print(f"{'a: add metrics':<22}{'r: remove metrics':<23}{'i: change interval':<22}{'u: change pmproxy url':<25}")
-        print(f"{'p: change policy id':<22}{'c: create config file':<23}{'b: back to selection':<22}")
-        cmd = input("\033[1m\033[34mSelection\033[0m>> ")
-        commands.handle_update(page_list, cmd)
+        try:
+            print("\n---COMMANDS---")
+            print(f"{'e: enable':<24}{'d: disable':<23}{'v: view selected':<22}{'s: apply changes':<25}")
+            print(f"{'a: add metrics':<24}{'r: remove metrics':<23}{'i: change interval':<22}{'u: change pmproxy url':<25}")
+            print(f"{'t: see unsent updates':<24}{'c: create config file':<23}{'q: quit':<22}")
+            cmd = input("\033[1m\033[34mSelection\033[0m>> ")
+            applied = commands.handle_update(selected, name_map, req_bodies, cmd, applied)
+        except classes.ExitException:
+            break
+
+    print('<3')
 
 
 def display_page(page):
@@ -42,7 +52,7 @@ def display_page(page):
         print(f"{f'{pair[0]}: ':<5}{pair[1]}")
 
 
-def display_pl(page_list):
+def display_pl(page_list, name_map):
     selected = selection(page_list)
     print("\nSelected:")
     lselected = sorted(list(selected), key=key_names)
@@ -56,7 +66,7 @@ def display_pl(page_list):
             print() # Flush the buffer
             break
 
-    update(page_list)
+    update(lselected, name_map)
 
 
 def key_names(name):

@@ -18,4 +18,4 @@ def update(args):
         pages.append(classes.Page(lines, line_nums))
     pl = classes.PageList(pages)
     # Display pl
-    renderer.display_pl(pl)
+    renderer.display_pl(pl, name_map)

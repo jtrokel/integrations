@@ -159,43 +159,248 @@ def handle_select(page_list, cmd):
             func(*params)
 
 
-def handle_update(page_list, cmd):
-    valid = re.compile(r'[edvlariupcb]')
+def enable(req_bodies, applied):
+    try:
+        for body in req_bodies:
+            for inp in body['inputs']:
+                body['inputs'][inp]['enabled'] = True
+                for stream in body['inputs'][inp]['streams']:
+                    body['inputs'][inp]['streams'][stream]['enabled'] = True
+        return False
+    except Exception as e:
+        print(e)
+        return applied
+
+
+def disable(req_bodies, applied):
+    try:
+        for body in req_bodies:
+            for inp in body['inputs']:
+                body['inputs'][inp]['enabled'] = False
+                for stream in body['inputs'][inp]['streams']:
+                    body['inputs'][inp]['streams'][stream]['enabled'] = False
+        return False
+    except Exception as e:
+        print(e)
+        return applied
+
+
+def view(selected, name_map, applied):
+    url = re.compile(r'^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$')
+    print("\033[1mNon-Metric Info\033[0m")
+    print(f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}")
+    print('-' * 23 + '|' + '-' * 106)
+    for integration in selected:
+        body = transform_body(name_map[integration])
+        for inp in body['inputs']:
+            for stream in body['inputs'][inp]['streams']:
+                match = url.match(body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+                host = match.group(2).split('.')[0]
+                enabled = body['inputs'][inp]['enabled'] and body['inputs'][inp]['streams'][stream]['enabled']
+                interval = body['inputs'][inp]['streams'][stream]['vars']['request_interval']
+                pmproxy_url = match.group(1)
+                policy_id = body['policy_id']
+                # Can't get enabled to print 'true' and 'false'
+                enabled = "True" if enabled else "False"
+                print(f"{integration:<22} | {host:<15}{enabled:<10}{interval:<10}{pmproxy_url:<40}{policy_id}")
+
+    print("\n\033[1mMetric Info\033[0m")
+    for integration in selected:
+        body = transform_body(name_map[integration])
+        for inp in body['inputs']:
+            for stream in body['inputs'][inp]['streams']:
+                match = url.match(body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+                metrics = match.group(3)
+                print(f"{f'{integration}:':<22}{metrics}\n")
+
+    return applied
+
+def quit(applied):
+    if not applied:
+        cont = input("You have updates that have not been applied. Are you sure you want to quit? (y/N): ")
+        if cont != 'y':
+            return applied
+
+    raise classes.ExitException
+
+
+def save(req_bodies, applied):
+    pass
+
+
+def add_metrics(req_bodies, applied):
+    pass
+
+
+def remove_metrics(req_bodies, applied):
+    pass
+
+
+def change_interval(req_bodies, applied):
+    pass
+
+
+def change_url(req_bodies, applied):
+    pass
+
+
+def see_updates(selected, name_map, req_bodies, applied):
+    def color_wrap(color_code, string):
+        return f"\033[{color_code}m{string}\033[0m"
+
+    url = re.compile(r'^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$')
+    print("\nChanged fields are shown in \033[35mmagenta\033[0m, additions are shown in \033[32mgreen\033[0m, and removals are shown in \033[31mred\033[0m.")
+    print("\033[1mNon-Metric Info\033[0m")
+    print(f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}")
+    print('-' * 23 + '|' + '-' * 106)
+    for integration in selected:
+        old_body = transform_body(name_map[integration])
+        new_body = [d for d in req_bodies if d['name'] == old_body['name']][0]
+        for inp in old_body['inputs']:
+            for stream in old_body['inputs'][inp]['streams']:
+    
+                eshift = 10
+                ishift = 10
+                ushift = 40
+
+                match = url.match(old_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+                new_match = url.match(new_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+
+                host = match.group(2).split('.')[0]
+                new_host = new_match.group(2).split('.')[0]
+                if host != new_host:
+                    new_host = color_wrap('35', new_host)
+
+                enabled = old_body['inputs'][inp]['enabled'] and old_body['inputs'][inp]['streams'][stream]['enabled']
+                new_enabled = new_body['inputs'][inp]['enabled'] and new_body['inputs'][inp]['streams'][stream]['enabled']
+                # Can't get enabled to print 'true' and 'false'
+                enabled = "True" if enabled else "False"
+                new_enabled = "True" if new_enabled else "False"
+                if enabled != new_enabled:
+                    new_enabled = color_wrap('35', new_enabled)
+                    eshift += 9
+
+                interval = old_body['inputs'][inp]['streams'][stream]['vars']['request_interval']
+                new_interval = new_body['inputs'][inp]['streams'][stream]['vars']['request_interval']
+                if interval != new_interval:
+                    new_interval = color_wrap('35', new_interval)
+                    ishift += 9
+
+                pmproxy_url = match.group(1)
+                new_pmproxy_url = new_match.group(1)
+                if pmproxy_url != new_pmproxy_url:
+                    new_pmproxy_url = color_wrap('35', new_pmproxy_url)
+                    ushift += 9
+
+                policy_id = old_body['policy_id']
+                new_policy_id = new_body['policy_id']
+                if policy_id != new_policy_id:
+                    new_policy_id = color_wrap('35', new_policy_id)
+
+                print(f"{integration:<22} | {new_host:<15}{new_enabled:<{eshift}}{new_interval:<{ishift}}{new_pmproxy_url:<{ushift}}{new_policy_id}")
+
+    print("\n\033[1mMetric Info\033[0m")
+    for integration in selected:
+        old_body = transform_body(name_map[integration])
+        new_body = [d for d in req_bodies if d['name'] == old_body['name']][0]
+        for inp in old_body['inputs']:
+            for stream in old_body['inputs'][inp]['streams']:
+                old_match = url.match(old_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+                new_match = url.match(new_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+                old_metrics = old_match.group(3)
+                new_metrics = new_match.group(3)
+
+                out = ""
+                if old_metrics == new_metrics:
+                    out = "No change in metrics."
+                    print(f"{f'{integration}:':<22}{out}\n")
+                else:
+                    old_list = old_metrics.split(',')
+                    new_list = new_metrics.split(',')
+                    s_added = set(new_list) - set(old_list)
+                    s_removed = set(old_list) - set(new_list)
+                    # To keep nice ordering:
+                    added = [metric for metric in new_list if metric in s_added]
+                    removed = [metric for metric in old_list if metric in s_removed]
+                    o_added = color_wrap('32', ','.join(added))
+                    o_removed = color_wrap('31', ','.join(removed))
+                    print(f"{f'{integration}: ':<25}{color_wrap('32', '+')} {o_added}")
+                    print(f"{'':<25}{color_wrap('31', '-')} {o_removed}")
+
+    return applied
+
+
+def create_config(req_bodies, applied):
+    pass
+
+
+def transform_body(old_body):
+    good_keys = ['package', 'name', 'namespace', 'description', 'policy_id', 'vars']
+    new_body = {key: old_body[key] for key in good_keys}
+    
+    new_body['package'].pop('title', '')
+    
+    # Transform inputs
+    inputs = old_body['inputs']
+    transformed_inputs = {}
+
+    for input_item in inputs:
+        input_type = input_item['type']
+        policy_template = input_item['policy_template']
+        streams = input_item['streams']
+
+        transformed_inputs[f"{policy_template}-{input_type}"] = {
+            'enabled': input_item['enabled'],
+            'streams': {}
+        }
+
+        for stream in streams:
+            stream_data_stream = stream['data_stream']
+            stream_vars = stream['vars']
+            stream_vars_transformed = {k: v['value'] for k, v in stream_vars.items() if 'value' in v}
+            
+            transformed_inputs[f'{policy_template}-{input_type}']['streams'][stream_data_stream['dataset']] = {
+                'enabled': stream['enabled'],
+                'vars': stream_vars_transformed
+            }
+
+    new_body['inputs'] = transformed_inputs
+    return new_body
+
+
+def handle_update(selected, name_map, req_bodies, cmd, applied):
+    COMMANDS = {
+        'e': (enable, ('req_bodies', 'applied')),
+        'd': (disable, ('req_bodies', 'applied')),
+        'v': (view, ('selected', 'name_map', 'applied')),
+        'q': (quit, ('applied',)),
+        's': (save, ('req_bodies', 'applied')),
+        'a': (add_metrics, ('req_bodies', 'applied')),
+        'r': (remove_metrics, ('req_bodies', 'applied')),
+        'i': (change_interval, ('req_bodies', 'applied')),
+        'u': (change_url, ('req_bodies', 'applied')),
+        't': (see_updates, ('selected', 'name_map', 'req_bodies', 'applied')),
+        'c': (create_config, ('req_bodies', 'applied'))
+    }
+
+    for (command, (func, param_types)) in COMMANDS.items():
+        if cmd == command:
+            params = []
+            for ptype in param_types:
+                if ptype == 'selected':
+                    params.append(selected)
+                elif ptype == 'name_map':
+                    params.append(name_map)
+                elif ptype == 'req_bodies':
+                    params.append(req_bodies)
+                elif ptype == 'applied':
+                    params.append(applied)
+            return func(*params)
+
+    valid = re.compile(r'[edvqariutcbs]')
     m = valid.match(cmd)
 
     if not m:
         print("Unrecognized command.")
         time.sleep(0.5)
-
-    elif cmd == 'e': # Enable
-        pass
-
-    elif cmd == 'd': # Disable
-        pass
-
-    elif cmd == 'v': # View info
-        pass
-
-    elif cmd == 'l': # List selected
-        pass
-
-    elif cmd == 'a': # Add metrics
-        pass
-
-    elif cmd == 'r': # Remove metrics
-        pass
-
-    elif cmd == 'i': # Change interval
-        pass
-
-    elif cmd == 'u': # Change pmproxy url
-        pass
-
-    elif cmd == 'p': # Change policy id
-        pass
-
-    elif cmd == 'c': # Create config file
-        pass
-
-    elif cmd == 'b': # Back to selection
-        pass
+        return applied
