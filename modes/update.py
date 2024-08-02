@@ -1,5 +1,6 @@
 import time
 import re
+import json
 
 from interactive import renderer, classes
 from utils import api_utils, file_utils
@@ -18,4 +19,4 @@ def update(args):
         pages.append(classes.Page(lines, line_nums))
     pl = classes.PageList(pages)
     # Display pl
-    renderer.display_pl(pl, name_map)
+    renderer.display_pl(pl, name_map, web_info)

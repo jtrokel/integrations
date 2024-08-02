@@ -2,6 +2,7 @@ import re
 import time
 import json
 
+from utils import api_utils
 from interactive import renderer, classes
 import constants
 
@@ -187,19 +188,17 @@ def disable(req_bodies, applied):
 
 
 def view(selected, name_map, applied):
-    url = re.compile(r'^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$')
     print("\033[1mNon-Metric Info\033[0m")
     print(f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}")
     print('-' * 23 + '|' + '-' * 106)
     for integration in selected:
-        body = transform_body(name_map[integration])
+        body = transform_body(name_map[integration], extended=True)
         for inp in body['inputs']:
             for stream in body['inputs'][inp]['streams']:
-                match = url.match(body['inputs'][inp]['streams'][stream]['vars']['request_url'])
-                host = match.group(2).split('.')[0]
+                host = body['hostname_'].split('.')[0]
                 enabled = body['inputs'][inp]['enabled'] and body['inputs'][inp]['streams'][stream]['enabled']
                 interval = body['inputs'][inp]['streams'][stream]['vars']['request_interval']
-                pmproxy_url = match.group(1)
+                pmproxy_url = body['pmproxy_url_']
                 policy_id = body['policy_id']
                 # Can't get enabled to print 'true' and 'false'
                 enabled = "True" if enabled else "False"
@@ -207,14 +206,14 @@ def view(selected, name_map, applied):
 
     print("\n\033[1mMetric Info\033[0m")
     for integration in selected:
-        body = transform_body(name_map[integration])
+        body = transform_body(name_map[integration], extended=True)
         for inp in body['inputs']:
             for stream in body['inputs'][inp]['streams']:
-                match = url.match(body['inputs'][inp]['streams'][stream]['vars']['request_url'])
-                metrics = match.group(3)
+                metrics = body['metrics_']
                 print(f"{f'{integration}:':<22}{metrics}\n")
 
     return applied
+
 
 def quit(applied):
     if not applied:
@@ -225,37 +224,101 @@ def quit(applied):
     raise classes.ExitException
 
 
-def save(req_bodies, applied):
-    pass
+def save(name_map, req_bodies, applied, config):
+    try:
+        i = 1
+        for body in req_bodies:
+            print(f"Updating integration {i} of {len(req_bodies)} ({body['name']}).")
+            i += 1
+            tmp = {'kibana_url': config['kibana']['kibana_url'], 'api_key': config['kibana']['api_key']}
+            tmp.update(body)
+            req = api_utils.build_request(tmp, constants.UPDATE, id_=name_map[body['name']]['id'])
+            api_utils.request(req, constants.UPDATE)
+        return True
+
+    except Exception as e:
+        print(e)
+        return applied
 
 
 def add_metrics(req_bodies, applied):
-    pass
+    valid = re.compile(r'(?:\w+(?:\.\w+)*,?)+')
+    metrics = input("\033[34mMetrics\033[0m>> ")
+    if not valid.match(metrics):
+        print("Invalid metrics. Metrics should be characters separated by dots, and you should give a comma-separated list of metrics.")
+        return applied
+
+    try:
+        for body in req_bodies:
+            mlist = body['metrics_'].split(',')
+            to_add = metrics.split(',')
+            mlist.extend(to_add)
+            body['metrics_'] = ','.join(mlist)
+        return False
+    except Exception as e:
+        print(e)
+        return applied
 
 
 def remove_metrics(req_bodies, applied):
-    pass
+    valid = re.compile(r'(?:\w+(?:\.\w+)*,?)+')
+    metrics = input("\033[34mMetrics\033[0m>> ")
+    if not valid.match(metrics):
+        print("Invalid metrics. Metrics should be characters separated by dots, and you should give a comma-separated list of metrics.")
+        return applied
+
+    try:
+        for body in req_bodies:
+            mlist = body['metrics_'].split(',')
+            to_remove = metrics.split(',')
+            new_mlist = [metric for metric in mlist if metric not in to_remove]
+            body['metrics_'] = ','.join(new_mlist)
+        return False
+    except Exception as e:
+        print(e)
+        return applied
 
 
 def change_interval(req_bodies, applied):
-    pass
+    valid = re.compile(r'^[1-9][0-9]*[smh]$')
+    new_interval = input("\033[34mInterval\033[0m>> ")
+    if not valid.match(new_interval):
+        print(f"Interval {new_interval} is invalid. It must be in the format <number><unit>, where unit can be s, m, or h.")
+        return applied
+
+    try:
+        for body in req_bodies:
+            for inp in body['inputs']:
+                for stream in body['inputs'][inp]['streams']:
+                    body['inputs'][inp]['streams'][stream]['vars']['request_interval'] = new_interval
+        return False
+    except Exception as e:
+        print(e)
+        return applied
 
 
 def change_url(req_bodies, applied):
-    pass
+    new_url = input("\033[34mpmproxy URL\033[0m>> ")
+
+    try:
+        for body in req_bodies:
+            body['pmproxy_url_'] = new_url
+        return False
+    except Exception as e:
+        print(e)
+        return applied
 
 
 def see_updates(selected, name_map, req_bodies, applied):
     def color_wrap(color_code, string):
         return f"\033[{color_code}m{string}\033[0m"
 
-    url = re.compile(r'^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$')
     print("\nChanged fields are shown in \033[35mmagenta\033[0m, additions are shown in \033[32mgreen\033[0m, and removals are shown in \033[31mred\033[0m.")
     print("\033[1mNon-Metric Info\033[0m")
     print(f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}")
     print('-' * 23 + '|' + '-' * 106)
     for integration in selected:
-        old_body = transform_body(name_map[integration])
+        old_body = transform_body(name_map[integration], extended=True)
         new_body = [d for d in req_bodies if d['name'] == old_body['name']][0]
         for inp in old_body['inputs']:
             for stream in old_body['inputs'][inp]['streams']:
@@ -264,11 +327,8 @@ def see_updates(selected, name_map, req_bodies, applied):
                 ishift = 10
                 ushift = 40
 
-                match = url.match(old_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
-                new_match = url.match(new_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
-
-                host = match.group(2).split('.')[0]
-                new_host = new_match.group(2).split('.')[0]
+                host = old_body['hostname_'].split('.')[0]
+                new_host = new_body['hostname_'].split('.')[0]
                 if host != new_host:
                     new_host = color_wrap('35', new_host)
 
@@ -287,8 +347,8 @@ def see_updates(selected, name_map, req_bodies, applied):
                     new_interval = color_wrap('35', new_interval)
                     ishift += 9
 
-                pmproxy_url = match.group(1)
-                new_pmproxy_url = new_match.group(1)
+                pmproxy_url = old_body['pmproxy_url_']
+                new_pmproxy_url = new_body['pmproxy_url_']
                 if pmproxy_url != new_pmproxy_url:
                     new_pmproxy_url = color_wrap('35', new_pmproxy_url)
                     ushift += 9
@@ -302,14 +362,12 @@ def see_updates(selected, name_map, req_bodies, applied):
 
     print("\n\033[1mMetric Info\033[0m")
     for integration in selected:
-        old_body = transform_body(name_map[integration])
+        old_body = transform_body(name_map[integration], extended=True)
         new_body = [d for d in req_bodies if d['name'] == old_body['name']][0]
         for inp in old_body['inputs']:
             for stream in old_body['inputs'][inp]['streams']:
-                old_match = url.match(old_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
-                new_match = url.match(new_body['inputs'][inp]['streams'][stream]['vars']['request_url'])
-                old_metrics = old_match.group(3)
-                new_metrics = new_match.group(3)
+                old_metrics = old_body['metrics_']
+                new_metrics = new_body['metrics_']
 
                 out = ""
                 if old_metrics == new_metrics:
@@ -326,7 +384,7 @@ def see_updates(selected, name_map, req_bodies, applied):
                     o_added = color_wrap('32', ','.join(added))
                     o_removed = color_wrap('31', ','.join(removed))
                     print(f"{f'{integration}: ':<25}{color_wrap('32', '+')} {o_added}")
-                    print(f"{'':<25}{color_wrap('31', '-')} {o_removed}")
+                    print(f"{'':<25}{color_wrap('31', '-')} {o_removed}\n")
 
     return applied
 
@@ -361,12 +419,16 @@ def create_config(selected, name_map, applied):
 
     with open(constants.ROOT_DIR + '/config/sample_config.json', 'w') as sample:
         json.dump({'nodes': nodes}, sample)
+        print("Wrote config to config/sample_config.json")
 
     return applied
 
 
-def transform_body(old_body):
-    good_keys = ['package', 'name', 'namespace', 'description', 'policy_id', 'vars']
+def transform_body(old_body, extended=False):
+    if extended:
+        good_keys = ['package', 'name', 'namespace', 'description', 'policy_id', 'vars', 'hostname_', 'pmproxy_url_', 'metrics_']
+    else:
+        good_keys = ['package', 'name', 'namespace', 'description', 'policy_id', 'vars']
     new_body = {key: old_body[key] for key in good_keys}
     
     new_body['package'].pop('title', '')
@@ -399,13 +461,13 @@ def transform_body(old_body):
     return new_body
 
 
-def handle_update(selected, name_map, req_bodies, cmd, applied):
+def handle_update(selected, name_map, req_bodies, cmd, applied, config):
     COMMANDS = {
         'e': (enable, ('req_bodies', 'applied')),
         'd': (disable, ('req_bodies', 'applied')),
         'v': (view, ('selected', 'name_map', 'applied')),
         'q': (quit, ('applied',)),
-        's': (save, ('req_bodies', 'applied')),
+        's': (save, ('name_map', 'req_bodies', 'applied', 'config')),
         'a': (add_metrics, ('req_bodies', 'applied')),
         'r': (remove_metrics, ('req_bodies', 'applied')),
         'i': (change_interval, ('req_bodies', 'applied')),
@@ -426,6 +488,8 @@ def handle_update(selected, name_map, req_bodies, cmd, applied):
                     params.append(req_bodies)
                 elif ptype == 'applied':
                     params.append(applied)
+                elif ptype == 'config':
+                    params.append(config)
             return func(*params)
 
     valid = re.compile(r'[edvqariutcbs]')

@@ -4,6 +4,7 @@
 import sys
 import re
 from collections import defaultdict
+import json
 
 import requests
 
@@ -118,6 +119,31 @@ def br_delete(config, id_):
     }
     return (method, url, headers)
 
+
+def br_update(config, id_):
+    method = 'PUT'
+    url = f"{config['kibana_url']}/api/fleet/package_policies/{id_}"
+    headers = {
+        "Authorization": f"ApiKey {config['api_key']}",
+        "kbn-xsrf": "exists"
+    }
+
+    url_re = re.compile(r'(https?://).*?(/p.*?spec=).*?(&client=).*?(&names=).*$')
+    for inp in config['inputs']:
+        for stream in config['inputs'][inp]['streams']:
+            old_url = config['inputs'][inp]['streams'][stream]['vars']['request_url']
+            transformed_url = url_re.sub(r'\1' + config['pmproxy_url_'] + r'\2' + config['hostname_'] + r'\3' + config['hostname_'] + r'\4' + config['metrics_'], old_url)
+            config['inputs'][inp]['streams'][stream]['vars']['request_url'] = transformed_url
+
+    del config['kibana_url']
+    del config['api_key']
+    del config['pmproxy_url_']
+    del config['hostname_']
+    del config['metrics_']
+
+    return (method, url, headers, config)
+
+
 def build_request(config, mode, group=None, id_=None):
     """Pass control to the request builder for the specified command."""
     if mode == constants.CREATE:
@@ -126,6 +152,8 @@ def build_request(config, mode, group=None, id_=None):
         return br_delete(config, id_)
     if mode == constants.LIST:
         return br_list(config)
+    if mode == constants.UPDATE:
+        return br_update(config, id_)
 
     print("what the")
     sys.exit(1)
@@ -151,6 +179,13 @@ def request(req, mode):
 
     elif mode == constants.LIST:
         pass
+
+    elif mode == constants.UPDATE:
+        response = requests.request(req[0], req[1], headers=req[2], json=json.dumps(req[3]))
+        if response.status_code != 200:
+            print(response.text)
+        return {}
+
     else:
         print("invalid mode", file=sys.stderr)
         sys.exit(1) 

@@ -1,4 +1,6 @@
 import re
+import sys
+import json
 
 from interactive import commands, classes
 
@@ -25,10 +27,19 @@ def selection(page_list):
     return page_list.selected
 
 
-def update(selected, name_map):
+def update(selected, name_map, config):
     req_bodies = [] # Will have bodies to send in put requests
     for integration in selected:
-        req_bodies.append(commands.transform_body(name_map[integration]))
+        body = commands.transform_body(name_map[integration])
+        for inp in body['inputs']:
+            for stream in body['inputs'][inp]['streams']:
+                url = re.compile(r'^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$')
+                match = url.match(body['inputs'][inp]['streams'][stream]['vars']['request_url'])
+                body['hostname_'] = match.group(2)
+                body['pmproxy_url_'] = match.group(1)
+                body['metrics_'] = match.group(3)
+
+        req_bodies.append(body)
 
     cmd = ''
     applied = True
@@ -40,7 +51,7 @@ def update(selected, name_map):
             print(f"{'a: add metrics':<24}{'r: remove metrics':<23}{'i: change interval':<22}{'u: change pmproxy url':<25}")
             print(f"{'t: see unsent updates':<24}{'c: create config file':<23}{'q: quit':<22}")
             cmd = input("\033[1m\033[34mSelection\033[0m>> ")
-            applied = commands.handle_update(selected, name_map, req_bodies, cmd, applied)
+            applied = commands.handle_update(selected, name_map, req_bodies, cmd, applied, config)
         except classes.ExitException:
             break
 
@@ -52,7 +63,7 @@ def display_page(page):
         print(f"{f'{pair[0]}: ':<5}{pair[1]}")
 
 
-def display_pl(page_list, name_map):
+def display_pl(page_list, name_map, config):
     selected = selection(page_list)
     if not selected:
         print("Nothing selected, exiting...")
@@ -70,7 +81,7 @@ def display_pl(page_list, name_map):
             print() # Flush the buffer
             break
 
-    update(lselected, name_map)
+    update(lselected, name_map, config)
 
 
 def key_names(name):
