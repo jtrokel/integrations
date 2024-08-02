@@ -1,8 +1,9 @@
 import re
 import time
+import json
 
 from interactive import renderer, classes
-
+import constants
 
 def done():
     raise classes.ExitException
@@ -330,8 +331,38 @@ def see_updates(selected, name_map, req_bodies, applied):
     return applied
 
 
-def create_config(req_bodies, applied):
-    pass
+def create_config(selected, name_map, applied):
+    nodes = []
+    targets = [body for (name, body) in name_map.items() if name in selected]
+
+    while targets:
+        current = targets.pop(0)
+        groups = [{
+            'policy_id': current['policy_id'],
+            'pmproxy_url': current['pmproxy_url_'],
+            'interval': current['inputs'][0]['streams'][0]['vars']['request_interval']['value'],
+            'metrics': current['metrics_']
+        }]
+
+        for index, body in enumerate(targets):
+            if body['hostname_'] == current['hostname_']:
+                groups.append({
+                    'policy_id': body['policy_id'],
+                    'pmproxy_url': body['pmproxy_url_'],
+                    'interval': body['inputs'][0]['streams'][0]['vars']['request_interval']['value'],
+                    'metrics': body['metrics_']
+                })
+                targets.pop(index)
+
+        nodes.append({
+            'fqdn': current['hostname_'],
+            'groups': groups
+        })
+
+    with open(constants.ROOT_DIR + '/config/sample_config.json', 'w') as sample:
+        json.dump({'nodes': nodes}, sample)
+
+    return applied
 
 
 def transform_body(old_body):
@@ -380,7 +411,7 @@ def handle_update(selected, name_map, req_bodies, cmd, applied):
         'i': (change_interval, ('req_bodies', 'applied')),
         'u': (change_url, ('req_bodies', 'applied')),
         't': (see_updates, ('selected', 'name_map', 'req_bodies', 'applied')),
-        'c': (create_config, ('req_bodies', 'applied'))
+        'c': (create_config, ('selected', 'name_map', 'applied'))
     }
 
     for (command, (func, param_types)) in COMMANDS.items():

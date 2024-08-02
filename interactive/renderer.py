@@ -54,6 +54,10 @@ def display_page(page):
 
 def display_pl(page_list, name_map):
     selected = selection(page_list)
+    if not selected:
+        print("Nothing selected, exiting...")
+        sys.exit(0)
+
     print("\nSelected:")
     lselected = sorted(list(selected), key=key_names)
     for i in range(0, len(lselected), 4):

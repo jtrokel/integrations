@@ -46,10 +46,11 @@ def generate_map(key, url, extended=False):
             idmap[name] = integration
             idmap[name]['enabled_'] = (integration['inputs'][0]['enabled'] 
                                       and integration['inputs'][0]['streams'][0]['enabled'])
-            url = re.match(r'https?:\/\/([a-zA-Z0-9\.:]+)\/.*&names=(.*)',
+            url = re.match(r'^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$',
                            integration['inputs'][0]['streams'][0]['vars']['request_url']['value'])
             idmap[name]['pmproxy_url_'] = url.group(1)
-            idmap[name]['metrics_'] = url.group(2)
+            idmap[name]['metrics_'] = url.group(3)
+            idmap[name]['hostname_'] = url.group(2)
 
     return idmap
 
