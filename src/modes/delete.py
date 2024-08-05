@@ -9,6 +9,7 @@ from utils import api_utils, file_utils
 
 
 def handle_names(names, args, kib_info, ids):
+    """Convert a list of integration names to a list of ids."""
     idmap = {}
     if args.generate_map:
         idmap = api_utils.generate_map(*kib_info)
@@ -53,6 +54,7 @@ def handle_names(names, args, kib_info, ids):
 
 
 def delete(args):
+    """Build and send HTTP request to delete each provided integration."""
     web_info = file_utils.read_config()
     config = file_utils.load_file(args.file)
     kib_info = (web_info["kibana"]["api_key"], web_info["kibana"]["kibana_url"])

@@ -1,12 +1,12 @@
-import time
-import re
-import json
+"""Driver for the update command.
+"""
 
 from interactive import renderer, classes
 from utils import api_utils, file_utils
 
 
-def update(args):
+def update():
+    """Build pages for selecting integrations, then pass control."""
     # Make map
     web_info = file_utils.read_config()
     name_map = api_utils.generate_map(

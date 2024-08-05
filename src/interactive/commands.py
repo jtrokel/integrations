@@ -1,3 +1,6 @@
+"""Logic for the available commands in update mode's interactive CLI.
+"""
+
 import re
 import time
 import json
@@ -8,16 +11,21 @@ import constants
 
 
 def done():
+    """Finished selecting, or finished searching."""
     raise classes.ExitException
 
 
 def search(page_list):
-    search = input("\033[1m\033[32mSearch\033[0m>> ")
+    """Search for integrations containing a query string,
+    and build a new PageList containing them.
+    """
+
+    query = input("\033[1m\033[32mSearch\033[0m>> ")
     page_list.clear_lines += 1
     new_lines = []
     for page in page_list.pages:
         for line in page.lines:
-            if re.search(search, line):
+            if re.search(query, line):
                 new_lines.append(line)
 
     if not new_lines:
@@ -34,8 +42,10 @@ def search(page_list):
     new_pl.selected = page_list.selected
     page_list.selected = renderer.selection(new_pl)
     # Redraw
-    for i in range(len(page_list.pages)):
-        for j in range(len(page_list.pages[i].lines)):
+    # TODO: I feel like tmp is unncessary here,
+    # but this is part of the disaster code so it'll be looked over anyway.
+    for i, page in enumerate(page_list.pages):
+        for j, line in enumerate(page_list.pages[i].lines):
             tmp = page_list.pages[i].lines[j]
             if re.sub(
                 r"\033\[\d+m", "", tmp
@@ -48,6 +58,7 @@ def search(page_list):
 
 
 def next_page(page_list):
+    """Page forward once."""
     if page_list.cpage >= page_list.npages - 1:
         print("At last page already.")
         page_list.clear_lines += 1
@@ -57,6 +68,7 @@ def next_page(page_list):
 
 
 def prev_page(page_list):
+    """Page backward once."""
     if page_list.cpage <= 0:
         print("At first page already.")
         page_list.clear_lines += 1
@@ -66,6 +78,7 @@ def prev_page(page_list):
 
 
 def jump_to(page_list, cmd):
+    """Go to specified page."""
     jump = re.compile(r"(\d+)j")
     jmp = jump.match(cmd)
     jtarget = int(jmp.group(1))
@@ -77,18 +90,21 @@ def jump_to(page_list, cmd):
 
 
 def select_all(page_list):
+    """Select every integration."""
     for i, j in enumerate(page_list.itemno):
         on = page_list.pages[i].select(list(j))
         page_list.selected.update(on)
 
 
 def deselect_all(page_list):
+    """Deselect every integration."""
     for i, j in enumerate(page_list.itemno):
         off = page_list.pages[i].deselect(list(j))
         page_list.selected.difference_update(off)
 
 
 def single_item(page_list, cmd):
+    """Select or deselect a single specified integration."""
     single = re.compile(r"([sd])(\d+)$")
     sm = single.match(cmd)
     if (
@@ -109,6 +125,7 @@ def single_item(page_list, cmd):
 
 
 def batch_items(page_list, cmd):
+    """Select or deselect a specified batch of integrations."""
     batch = re.compile(r"([sd])(\d+)-(\d+)")
     bm = batch.match(cmd)
     if (
@@ -136,7 +153,9 @@ def batch_items(page_list, cmd):
 
 
 def handle_select(page_list, cmd):
-    COMMANDS = {
+    """Figure out which select command to execute."""
+
+    commands = {
         r"b": (done, ()),
         r"f": (search, ("page_list",)),
         r"n": (next_page, ("page_list",)),
@@ -148,19 +167,7 @@ def handle_select(page_list, cmd):
         r"[sd]\d+-\d+": (batch_items, ("page_list", "cmd")),
     }
 
-    valid = re.compile(r"[npfb]|(s|d)(a|\d+|\d+-\d+)|\d+j")
-    single = re.compile(r"([sd])(\d+)$")
-    batch = re.compile(r"([sd])(\d+)-(\d+)")
-    jump = re.compile(r"(\d+)j")
-    m = valid.match(cmd)
-
-    if not m:
-        print("Unrecognized command.")
-        time.sleep(0.5)
-        page_list.clear_lines += 1
-        return
-
-    for pattern, (func, param_types) in COMMANDS.items():
+    for pattern, (func, param_types) in commands.items():
         match = re.match(pattern, cmd)
         if match:
             params = []
@@ -170,9 +177,16 @@ def handle_select(page_list, cmd):
                 elif ptype == "cmd":
                     params.append(cmd)
             func(*params)
+            return  # TODO: Can maybe be return func(*params), need to check what each command returns.
+
+    print("Unrecognized command.")
+    time.sleep(0.5)
+    page_list.clear_lines += 1
+    return
 
 
 def enable(req_bodies, applied):
+    """Enable selected integrations."""
     try:
         for body in req_bodies:
             for inp in body["inputs"]:
@@ -186,6 +200,7 @@ def enable(req_bodies, applied):
 
 
 def disable(req_bodies, applied):
+    """Disable selected integrations."""
     try:
         for body in req_bodies:
             for inp in body["inputs"]:
@@ -199,9 +214,11 @@ def disable(req_bodies, applied):
 
 
 def view(selected, name_map, applied):
+    """View info about selected integrations."""
     print("\033[1mNon-Metric Info\033[0m")
     print(
-        f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}"
+        f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}"
+        f"{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}"
     )
     print("-" * 23 + "|" + "-" * 106)
     for integration in selected:
@@ -221,7 +238,8 @@ def view(selected, name_map, applied):
                 # Can't get enabled to print 'true' and 'false'
                 enabled = "True" if enabled else "False"
                 print(
-                    f"{integration:<22} | {host:<15}{enabled:<10}{interval:<10}{pmproxy_url:<40}{policy_id}"
+                    f"{integration:<22} | {host:<15}{enabled:<10}"
+                    f"{interval:<10}{pmproxy_url:<40}{policy_id}"
                 )
 
     print("\n\033[1mMetric Info\033[0m")
@@ -235,7 +253,8 @@ def view(selected, name_map, applied):
     return applied
 
 
-def quit(applied):
+def quit_cli(applied):
+    """Quit the CLI."""
     if not applied:
         cont = input(
             "You have updates that have not been applied. Are you sure you want to quit? (y/N): "
@@ -247,6 +266,8 @@ def quit(applied):
 
 
 def save(name_map, req_bodies, applied, config):
+    """Send HTTP requests containing all specified updates."""
+    # TODO: Could probably be parallelized.
     try:
         i = 1
         for body in req_bodies:
@@ -269,11 +290,13 @@ def save(name_map, req_bodies, applied, config):
 
 
 def add_metrics(req_bodies, applied):
+    """Request and add a list of metrics to selected integrations."""
     valid = re.compile(r"(?:\w+(?:\.\w+)*,?)+")
     metrics = input("\033[34mMetrics\033[0m>> ")
     if not valid.match(metrics):
         print(
-            "Invalid metrics. Metrics should be characters separated by dots, and you should give a comma-separated list of metrics."
+            "Invalid metrics. Metrics should be characters separated by dots,"
+            " and you should give a comma-separated list of metrics."
         )
         return applied
 
@@ -290,11 +313,13 @@ def add_metrics(req_bodies, applied):
 
 
 def remove_metrics(req_bodies, applied):
+    """Request and remove a list of metrics to selected integrations."""
     valid = re.compile(r"(?:\w+(?:\.\w+)*,?)+")
     metrics = input("\033[34mMetrics\033[0m>> ")
     if not valid.match(metrics):
         print(
-            "Invalid metrics. Metrics should be characters separated by dots, and you should give a comma-separated list of metrics."
+            "Invalid metrics. Metrics should be characters separated by dots,"
+            " and you should give a comma-separated list of metrics."
         )
         return applied
 
@@ -311,11 +336,13 @@ def remove_metrics(req_bodies, applied):
 
 
 def change_interval(req_bodies, applied):
+    """Request and change the interval for selected integrations."""
     valid = re.compile(r"^[1-9][0-9]*[smh]$")
     new_interval = input("\033[34mInterval\033[0m>> ")
     if not valid.match(new_interval):
         print(
-            f"Interval {new_interval} is invalid. It must be in the format <number><unit>, where unit can be s, m, or h."
+            f"Interval {new_interval} is invalid."
+            " It must be in the format <number><unit>, where unit can be s, m, or h."
         )
         return applied
 
@@ -333,6 +360,7 @@ def change_interval(req_bodies, applied):
 
 
 def change_url(req_bodies, applied):
+    """Request and change the pmproxy URL for selected integrations."""
     new_url = input("\033[34mpmproxy URL\033[0m>> ")
 
     try:
@@ -345,15 +373,20 @@ def change_url(req_bodies, applied):
 
 
 def see_updates(selected, name_map, req_bodies, applied):
+    """See the updates that the user's made but not saved so far."""
+
     def color_wrap(color_code, string):
         return f"\033[{color_code}m{string}\033[0m"
 
     print(
-        "\nChanged fields are shown in \033[35mmagenta\033[0m, additions are shown in \033[32mgreen\033[0m, and removals are shown in \033[31mred\033[0m."
+        "\nChanged fields are shown in \033[35mmagenta\033[0m,"
+        " additions are shown in \033[32mgreen\033[0m,"
+        " and removals are shown in \033[31mred\033[0m."
     )
     print("\033[1mNon-Metric Info\033[0m")
     print(
-        f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}"
+        f"{'Integration':<22} | {'Host':<15}{'Enabled':<10}"
+        f"{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}"
     )
     print("-" * 23 + "|" + "-" * 106)
     for integration in selected:
@@ -408,7 +441,8 @@ def see_updates(selected, name_map, req_bodies, applied):
                     new_policy_id = color_wrap("35", new_policy_id)
 
                 print(
-                    f"{integration:<22} | {new_host:<15}{new_enabled:<{eshift}}{new_interval:<{ishift}}{new_pmproxy_url:<{ushift}}{new_policy_id}"
+                    f"{integration:<22} | {new_host:<15}{new_enabled:<{eshift}}"
+                    f"{new_interval:<{ishift}}{new_pmproxy_url:<{ushift}}{new_policy_id}"
                 )
 
     print("\n\033[1mMetric Info\033[0m")
@@ -441,6 +475,7 @@ def see_updates(selected, name_map, req_bodies, applied):
 
 
 def create_config(selected, name_map, applied):
+    """Create a sample config file which could be used to create the selected integrations."""
     nodes = []
     targets = [body for (name, body) in name_map.items() if name in selected]
 
@@ -473,7 +508,9 @@ def create_config(selected, name_map, applied):
 
         nodes.append({"fqdn": current["hostname_"], "groups": groups})
 
-    with open(constants.ROOT_DIR + "/config/sample_config.json", "w") as sample:
+    with open(
+        constants.ROOT_DIR + "/config/sample_config.json", "w", encoding="utf-8"
+    ) as sample:
         json.dump({"nodes": nodes}, sample)
         print("Wrote config to config/sample_config.json")
 
@@ -481,6 +518,9 @@ def create_config(selected, name_map, applied):
 
 
 def transform_body(old_body, extended=False):
+    """Change the body of the GET response
+    to something that can be sent in the update PUT request.
+    """
     if extended:
         good_keys = [
             "package",
@@ -529,11 +569,12 @@ def transform_body(old_body, extended=False):
 
 
 def handle_update(selected, name_map, req_bodies, cmd, applied, config):
-    COMMANDS = {
+    """Figure out which update command to execute."""
+    commands = {
         "e": (enable, ("req_bodies", "applied")),
         "d": (disable, ("req_bodies", "applied")),
         "v": (view, ("selected", "name_map", "applied")),
-        "q": (quit, ("applied",)),
+        "q": (quit_cli, ("applied",)),
         "s": (save, ("name_map", "req_bodies", "applied", "config")),
         "a": (add_metrics, ("req_bodies", "applied")),
         "r": (remove_metrics, ("req_bodies", "applied")),
@@ -543,7 +584,7 @@ def handle_update(selected, name_map, req_bodies, cmd, applied, config):
         "c": (create_config, ("selected", "name_map", "applied")),
     }
 
-    for command, (func, param_types) in COMMANDS.items():
+    for command, (func, param_types) in commands.items():
         if cmd == command:
             params = []
             for ptype in param_types:
@@ -559,10 +600,6 @@ def handle_update(selected, name_map, req_bodies, cmd, applied, config):
                     params.append(config)
             return func(*params)
 
-    valid = re.compile(r"[edvqariutcbs]")
-    m = valid.match(cmd)
-
-    if not m:
-        print("Unrecognized command.")
-        time.sleep(0.5)
-        return applied
+    print("Unrecognized command.")
+    time.sleep(0.5)
+    return applied

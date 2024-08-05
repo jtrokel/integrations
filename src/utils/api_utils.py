@@ -1,10 +1,10 @@
 """Functions that interact with the kibana API.
 """
 
-import sys
-import re
 from collections import defaultdict
 import json
+import re
+import sys
 
 import requests
 
@@ -14,7 +14,9 @@ import constants
 def validate_key(key, url):
     """Ensure api key and Kibana URL are valid."""
     resp = requests.get(
-        f"{url}/api/fleet/agent_policies", headers={"Authorization": f"ApiKey {key}"}
+        f"{url}/api/fleet/agent_policies",
+        headers={"Authorization": f"ApiKey {key}"},
+        timeout=10,
     )
 
     if resp.status_code == 404:
@@ -37,6 +39,7 @@ def generate_map(key, url, extended=False):
     resp = requests.get(
         f"{url}/api/fleet/package_policies",
         headers={"Authorization": f"ApiKey {key}", "kbn-xsrf": "true"},
+        timeout=10,
     )
     resp_body = resp.json()
 
@@ -113,10 +116,12 @@ def br_create(config, group):
 
 
 def br_list(config):
+    """Build HTTP request for the list command."""
     pass
 
 
 def br_delete(config, id_):
+    """Build HTTP request for the delete command."""
     method = "DELETE"
     url = f"{config['kibana_url']}/api/fleet/package_policies/{id_}"
     headers = {"Authorization": f"ApiKey {config['api_key']}", "kbn-xsrf": "exists"}
@@ -124,6 +129,7 @@ def br_delete(config, id_):
 
 
 def br_update(config, id_):
+    """Build HTTP request for the update command."""
     method = "PUT"
     url = f"{config['kibana_url']}/api/fleet/package_policies/{id_}"
     headers = {"Authorization": f"ApiKey {config['api_key']}", "kbn-xsrf": "exists"}
@@ -174,7 +180,9 @@ def build_request(config, mode, group=None, id_=None):
 def request(req, mode):
     """Send HTTP request with info from req."""
     if mode == constants.CREATE:
-        response = requests.request(req[0], req[1], headers=req[2], json=req[3])
+        response = requests.request(
+            req[0], req[1], headers=req[2], json=req[3], timeout=10
+        )
         if response.status_code == 409:
             print(response.text)
             return {}
@@ -183,23 +191,22 @@ def request(req, mode):
         int_name = response.json()["item"]["name"]
         return {int_name: int_id}
 
-    elif mode == constants.DELETE:
-        response = requests.request(req[0], req[1], headers=req[2])
+    if mode == constants.DELETE:
+        response = requests.request(req[0], req[1], headers=req[2], timeout=10)
         if response.status_code != 200:
             print(response.text)
         return {}
 
-    elif mode == constants.LIST:
+    if mode == constants.LIST:
         pass
 
-    elif mode == constants.UPDATE:
+    if mode == constants.UPDATE:
         response = requests.request(
-            req[0], req[1], headers=req[2], json=json.dumps(req[3])
+            req[0], req[1], headers=req[2], json=json.dumps(req[3]), timeout=10
         )
         if response.status_code != 200:
             print(response.text)
         return {}
 
-    else:
-        print("invalid mode", file=sys.stderr)
-        sys.exit(1)
+    print("invalid mode", file=sys.stderr)
+    sys.exit(1)

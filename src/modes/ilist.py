@@ -4,11 +4,8 @@
 from utils import api_utils, file_utils
 
 
-def ilist(args):
-    GREEN = "\033[0;32m"
-    RED = "\033[0;31m"
-    ENDC = "\033[0m"
-
+def ilist():
+    """List each installed integration and whether it's enabled."""
     web_info = file_utils.read_config()
     kib_info = (web_info["kibana"]["api_key"], web_info["kibana"]["kibana_url"])
     api_utils.validate_key(*kib_info)
@@ -17,9 +14,9 @@ def ilist(args):
     print(f"{'Name':<25}{'ID':<45}{'Status'}")
     for name in sorted(idmap.keys()):
         enabled = (
-            f"{GREEN}enabled{ENDC}"
+            "\033[32menabled\033[0m"
             if idmap[name]["enabled_"]
-            else f"{RED}disabled{ENDC}"
+            else "\033[31mdisabled\033[0m"
         )
         line = f"{name:<25}{idmap[name]['id']:<45}{enabled}"
         print(line)

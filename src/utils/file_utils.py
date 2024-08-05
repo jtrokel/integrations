@@ -15,6 +15,7 @@ import constants
 
 
 def read_config():
+    """Read web_config.ini file."""
     cfg = configparser.ConfigParser()
     cfg.read(f"{constants.ROOT_DIR}/config/web_config.ini")
     return cfg
@@ -22,7 +23,7 @@ def read_config():
 
 def load_file(infile):
     """Load JSON from file."""
-    with open(infile) as infd:
+    with open(infile, encoding="utf-8") as infd:
         try:
             config = json.load(infd)
             return config
@@ -113,10 +114,10 @@ def check_conf(config, mode):
 def expand_metrics(group):
     expanded = []
     ctx = pmapi.pmContext(c_api.PM_CONTEXT_HOST, group['fqdn'])
-    
+
     def add_metric(name):
         expanded.append(name)
-    
+
     for metric in group['metrics'].split(','):
         ctx.pmTraversePMNS(metric, add_metric)
 
@@ -126,27 +127,19 @@ def expand_metrics(group):
 
 def try_init_json(path):
     """Create a JSON file if it doesn't exist."""
-    try:
-        tmp = open(path)
-        tmp.close()
-    except FileNotFoundError:
+    if not os.path.isfile(path):
         print(f"Could not find file {path}.")
         cont = input("Do you want to continue and create it automatically? (y/n): ")
         if cont != "y":
             print("Exiting...")
             sys.exit(0)
-    except OSError:
-        print(f"Error opening {path}. Try checking its permissions.", file=sys.stderr)
-        sys.exit(1)
-
-    if not os.path.isfile(path):
-        with open(path, mode="w") as newfile:
+        with open(path, mode="w", encoding="utf-8") as newfile:
             json.dump({}, newfile)
 
 
 def update_idmap(new_map, args):
     """Update the name->id mapping with the newly created integrations."""
-    with open(args.out, mode="r+") as outfile:
+    with open(args.out, mode="r+", encoding="utf-8") as outfile:
         try:
             if os.path.getsize(args.out) > 0:
                 file_map = json.load(outfile)

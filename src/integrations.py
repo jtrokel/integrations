@@ -12,7 +12,7 @@ import argparse
 import sys
 
 import constants
-from modes import create, ilist, delete, update
+from modes import create, delete, ilist, update
 
 
 def build_parser():
@@ -52,9 +52,7 @@ def build_parser():
     )
 
     # Parser for list
-    parser_list = subparsers.add_parser(
-        "list", help="List the currently existing integrations"
-    )
+    subparsers.add_parser("list", help="List the currently existing integrations")
 
     # Parser for delete
     parser_delete = subparsers.add_parser("delete", help="Delete integrations")
@@ -94,7 +92,7 @@ def build_parser():
     )
 
     # Parser for update
-    parser_update = subparsers.add_parser(
+    subparsers.add_parser(
         "update", help="Update various things about existing integrations"
     )
 
@@ -124,15 +122,23 @@ def run_command(parser):
     cmd = args.command
 
     modes = {
-        constants.CREATE: create.create,
-        constants.LIST: ilist.ilist,
-        constants.DELETE: delete.delete,
-        constants.UPDATE: update.update,
+        constants.CREATE: (create.create, ("args",)),
+        constants.LIST: (ilist.ilist, ()),
+        constants.DELETE: (delete.delete, ("args",)),
+        constants.UPDATE: (update.update, ()),
     }
 
     if cmd not in modes:
         parser.print_help()
         sys.exit(1)
+
+    for command, (func, param_types) in modes.items():
+        if cmd == command:
+            params = []
+            for ptype in param_types:
+                if ptype == "args":
+                    params.append(args)
+            func(*params)
 
     modes[cmd](args)
 
