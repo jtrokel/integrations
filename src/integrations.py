@@ -136,8 +136,6 @@ def run_command(parser):
                     params.append(args)
             func(*params)
 
-    modes[cmd](args)
-
 
 def main():
     """The driver for integrations.py."""

@@ -53,7 +53,7 @@ def update(selected, name_map, req_bodies, config):
             )
             print(
                 f"{'a: add metrics':<24}{'r: remove metrics':<23}"
-                f"{'i: change interval':<22}{'u: change pmproxy url':<25}"
+                f"{'i: change interval':<22}{'u: change pmproxy URL':<25}"
             )
             print(
                 f"{'t: see unsent updates':<24}{'c: create config file':<23}{'q: quit':<22}"

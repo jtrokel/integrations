@@ -532,6 +532,22 @@ def create_config(selected, name_map, applied):
     return applied
 
 
+def update_help(applied):
+    """Print help text for the update commands."""
+    print("\ne - queue enabling all selected integrations")
+    print("d - queue disabling all selected integrations")
+    print("v - view all selected integrations without updates")
+    print("s - apply all queued updates")
+    print("a - queue adding metrics to all selected integrations")
+    print("r - queue removing metrics from all selected integrations")
+    print("i - queue changing request interval on all selected integrations")
+    print("u - queue changing pmproxy URL on all selected integrations")
+    print("t - see all queued updates")
+    print("c - generate a config file for create mode corresponding to the selected integrations\n")
+
+    return applied
+
+
 def transform_body(old_body, extended=False):
     """Change the body of the GET response
     to something that can be sent in the update PUT request.
@@ -597,7 +613,9 @@ def handle_update(selected, name_map, req_bodies, cmd, applied, config):
         "u": (change_url, ("req_bodies", "applied")),
         "t": (see_updates, ("selected", "name_map", "req_bodies", "applied")),
         "c": (create_config, ("selected", "name_map", "applied")),
+        "h": (update_help, ("applied",))
     }
+    # TODO: add help command
 
     for command, (func, param_types) in commands.items():
         if cmd == command:
