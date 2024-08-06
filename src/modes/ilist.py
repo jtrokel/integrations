@@ -18,5 +18,4 @@ def ilist():
             if idmap[name]["enabled_"]
             else "\033[31mdisabled\033[0m"
         )
-        line = f"{name:<25}{idmap[name]['id']:<45}{enabled}"
-        print(line)
+        print(f"{name:<25}{idmap[name]['id']:<45}{enabled}")

@@ -204,8 +204,8 @@ def request(req, mode):
         response = requests.request(
             req[0], req[1], headers=req[2], json=json.dumps(req[3]), timeout=10
         )
-        if response.status_code != 200:
-            print(response.text)
+        # Handled in caller
+        response.raise_for_status()
         return {}
 
     print("invalid mode", file=sys.stderr)

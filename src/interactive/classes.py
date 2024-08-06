@@ -7,13 +7,11 @@ import re
 class ExitException(Exception):
     """Used to check if exit command was executed."""
 
-    pass
-
 
 class Page:
     """Each individual page containing integrations."""
 
-    def __init__(self, lines, lnums):
+    def __init__(self, lines, lnums=None):
         self.nlines = len(lines)
         self.lines = lines
         self.lnums = lnums
@@ -43,6 +41,11 @@ class Page:
                 out.append(self.lines[pair[1]])
         return out
 
+    def display(self):
+        """Display a page and it's associated line numbers."""
+        for pair in zip(self.lnums, self.lines):
+            print(f"{f'{pair[0]}: ':<5}{pair[1]}")
+
 
 class PageList:
     """The list of all the pages."""
@@ -50,7 +53,7 @@ class PageList:
     def __init__(self, pages):
         self.npages = len(pages)
         self.pages = pages
-        self.itemno = []
+        self.all_line_nums = []
         self.cpage = 0
         self.selected = set()
         self.clear_lines = 8
@@ -58,6 +61,23 @@ class PageList:
 
         i = 1
         for page in self.pages:
-            self.itemno.append(range(i, i + page.nlines))
+            self.all_line_nums.append(range(i, i + page.nlines))
             i += page.nlines
-        # TODO: maybe move the command handlers into here?
+
+    def display_page(self):
+        """Display the current page."""
+        self.pages[self.cpage].display()
+        print(f"\nPage {self.cpage + 1}/{self.npages}\n")
+
+    def update_colors(self):
+        """Redraw the colors for selected integrations."""
+        for i, page in enumerate(self.pages):
+            for j, line in enumerate(page.lines):
+                if re.sub(
+                    r"\033\[\d+m", "", line
+                ) in self.selected and not line.startswith("\033"):
+                    self.pages[i].lines[j] = f"\033[32m{line}\033[0m"
+                elif re.sub(
+                    r"\033\[\d+m", "", line
+                ) not in self.selected and line.startswith("\033"):
+                    self.pages[i].lines[j] = re.sub(r"\033\[\d+m", "", line)

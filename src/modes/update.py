@@ -22,4 +22,4 @@ def update():
         pages.append(classes.Page(lines, line_nums))
     pl = classes.PageList(pages)
     # Display pl
-    renderer.display_pl(pl, name_map, web_info)
+    renderer.cli_driver(pl, name_map, web_info)

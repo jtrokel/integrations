@@ -77,13 +77,11 @@ def delete(args):
             if "names" in config:
                 inv_map = {val["id"]: key for key, val in names_info[1].items()}
                 curr_name = inv_map[i]
-                del_this = input(
-                    f"Do you want to delete integration {i} ({curr_name})? (y/N) "
-                )
+                proceed = f"Do you want to delete integration {i} ({curr_name})? (y/N) "
             else:
-                del_this = input(f"Do you want to delete integration {i}? (y/N) ")
+                proceed = f"Do you want to delete integration {i}? (y/N) "
 
-            if del_this != "y":
+            if input(proceed) != "y":
                 continue
 
         api_utils.request(req, constants.DELETE)

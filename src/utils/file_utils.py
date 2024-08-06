@@ -141,10 +141,7 @@ def update_idmap(new_map, args):
     """Update the name->id mapping with the newly created integrations."""
     with open(args.out, mode="r+", encoding="utf-8") as outfile:
         try:
-            if os.path.getsize(args.out) > 0:
-                file_map = json.load(outfile)
-            else:
-                file_map = {}
+            file_map = json.load(outfile) if os.path.getsize(args.out) > 0 else {}
             file_map.update(new_map)
             outfile.seek(0)
             json.dump(file_map, outfile)

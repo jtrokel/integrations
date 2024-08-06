@@ -5,6 +5,8 @@ import re
 import time
 import json
 
+import requests
+
 from utils import api_utils
 from interactive import renderer, classes
 import constants
@@ -22,11 +24,12 @@ def search(page_list):
 
     query = input("\033[1m\033[32mSearch\033[0m>> ")
     page_list.clear_lines += 1
-    new_lines = []
-    for page in page_list.pages:
-        for line in page.lines:
-            if re.search(query, line):
-                new_lines.append(line)
+    new_lines = [
+        line
+        for page in page_list.pages
+        for line in page.lines
+        if re.search(query, line)
+    ]
 
     if not new_lines:
         print("Search matched nothing.")
@@ -38,23 +41,12 @@ def search(page_list):
         line_nums = list(range(i + 1, i + 16))
         lines = new_lines[i : i + 15]
         new_pages.append(classes.Page(lines, line_nums))
+
     new_pl = classes.PageList(new_pages)
     new_pl.selected = page_list.selected
     page_list.selected = renderer.selection(new_pl)
-    # Redraw
-    # TODO: I feel like tmp is unncessary here,
-    # but this is part of the disaster code so it'll be looked over anyway.
-    for i, page in enumerate(page_list.pages):
-        for j, line in enumerate(page_list.pages[i].lines):
-            tmp = page_list.pages[i].lines[j]
-            if re.sub(
-                r"\033\[\d+m", "", tmp
-            ) in page_list.selected and not tmp.startswith("\033"):
-                page_list.pages[i].lines[j] = f"\033[32m{tmp}\033[0m"
-            elif re.sub(
-                r"\033\[\d+m", "", tmp
-            ) not in page_list.selected and tmp.startswith("\033"):
-                page_list.pages[i].lines[j] = re.sub(r"\033\[\d+m", "", tmp)
+
+    page_list.update_colors()
 
 
 def next_page(page_list):
@@ -79,9 +71,8 @@ def prev_page(page_list):
 
 def jump_to(page_list, cmd):
     """Go to specified page."""
-    jump = re.compile(r"(\d+)j")
-    jmp = jump.match(cmd)
-    jtarget = int(jmp.group(1))
+    __, jtarget = parse_variable_command(cmd)
+    jtarget = int(jtarget)
     if jtarget < 1 or jtarget > page_list.npages:
         print("Invalid page number.")
         time.sleep(0.5)
@@ -91,65 +82,83 @@ def jump_to(page_list, cmd):
 
 def select_all(page_list):
     """Select every integration."""
-    for i, j in enumerate(page_list.itemno):
-        on = page_list.pages[i].select(list(j))
+    for i, line_nums in enumerate(page_list.all_line_nums):
+        on = page_list.pages[i].select(list(line_nums))
         page_list.selected.update(on)
 
 
 def deselect_all(page_list):
     """Deselect every integration."""
-    for i, j in enumerate(page_list.itemno):
-        off = page_list.pages[i].deselect(list(j))
+    for i, line_nums in enumerate(page_list.all_line_nums):
+        off = page_list.pages[i].deselect(list(line_nums))
         page_list.selected.difference_update(off)
 
 
 def single_item(page_list, cmd):
     """Select or deselect a single specified integration."""
-    single = re.compile(r"([sd])(\d+)$")
-    sm = single.match(cmd)
+    mode, target = parse_variable_command(cmd)
+    target = int(target)
+
     if (
-        not page_list.itemno[page_list.cpage][0]
-        <= int(sm.group(2))
-        <= page_list.itemno[page_list.cpage][-1]
+        not page_list.all_line_nums[page_list.cpage][0]
+        <= target
+        <= page_list.all_line_nums[page_list.cpage][-1]
     ):
         print("Item not on page.")
         time.sleep(0.5)
         return
 
-    if single.match(cmd).group(1) == "s":
-        on = page_list.pages[page_list.cpage].select([int(sm.group(2))])
+    if mode == "s":
+        on = page_list.pages[page_list.cpage].select([target])
         page_list.selected.update(on)
     else:
-        off = page_list.pages[page_list.cpage].deselect([int(sm.group(2))])
+        off = page_list.pages[page_list.cpage].deselect([target])
         page_list.selected.difference_update(off)
 
 
 def batch_items(page_list, cmd):
     """Select or deselect a specified batch of integrations."""
-    batch = re.compile(r"([sd])(\d+)-(\d+)")
-    bm = batch.match(cmd)
-    if (
-        int(bm.group(2)) < page_list.itemno[0][0]
-        or int(bm.group(3)) > page_list.itemno[-1][-1]
-    ):
+    mode, target_range = parse_variable_command(cmd)
+    # target_range looks like \d+-\d+
+    start, end = target_range.split("-")
+
+    if start < page_list.all_line_nums[0][0] or end > page_list.all_line_nums[-1][-1]:
         print("Item index out of bounds.")
         time.sleep(0.5)
         return
 
-    if int(bm.group(2)) > int(bm.group(3)):
+    if start > end:
         print("First index must be smaller than second.")
         time.sleep(0.5)
         return
 
-    target = set(range(int(bm.group(2)), int(bm.group(3)) + 1))
-    if batch.match(cmd).group(1) == "s":
-        for i, j in enumerate(page_list.itemno):
-            on = page_list.pages[i].select(list(set(j) & target))
+    target = set(range(start, end + 1))
+    if mode == "s":
+        for i, line_nums in enumerate(page_list.all_line_nums):
+            on = page_list.pages[i].select(list(set(line_nums) & target))
             page_list.selected.update(on)
     else:
-        for i, j in enumerate(page_list.itemno):
-            off = page_list.pages[i].deselect(list(set(j) & target))
+        for i, line_nums in enumerate(page_list.all_line_nums):
+            off = page_list.pages[i].deselect(list(set(line_nums) & target))
             page_list.selected.difference_update(off)
+
+
+def parse_variable_command(cmd):
+    """Parses a command containing line/page numbers.
+
+    These variable commands are all of the form:
+    [cmd][target].
+    This function relies on that.
+    """
+    for i, char in enumerate(cmd):
+        if str.isdigit(char):
+            first_digit = i
+            break
+    else:
+        # No digits found in cmd
+        raise RuntimeError("No digit found in variable command.")
+
+    return (cmd[:first_digit], cmd[first_digit:])
 
 
 def handle_select(page_list, cmd):
@@ -160,7 +169,7 @@ def handle_select(page_list, cmd):
         r"f": (search, ("page_list",)),
         r"n": (next_page, ("page_list",)),
         r"p": (prev_page, ("page_list",)),
-        r"\d+j": (jump_to, ("page_list", "cmd")),
+        r"j\d+": (jump_to, ("page_list", "cmd")),
         r"sa": (select_all, ("page_list",)),
         r"da": (deselect_all, ("page_list",)),
         r"[sd]\d+$": (single_item, ("page_list", "cmd")),
@@ -177,7 +186,7 @@ def handle_select(page_list, cmd):
                 elif ptype == "cmd":
                     params.append(cmd)
             func(*params)
-            return  # TODO: Can maybe be return func(*params), need to check what each command returns.
+            return
 
     print("Unrecognized command.")
     time.sleep(0.5)
@@ -194,7 +203,7 @@ def enable(req_bodies, applied):
                 for stream in body["inputs"][inp]["streams"]:
                     body["inputs"][inp]["streams"][stream]["enabled"] = True
         return False
-    except Exception as e:
+    except KeyError as e:
         print(e)
         return applied
 
@@ -208,7 +217,7 @@ def disable(req_bodies, applied):
                 for stream in body["inputs"][inp]["streams"]:
                     body["inputs"][inp]["streams"][stream]["enabled"] = False
         return False
-    except Exception as e:
+    except KeyError as e:
         print(e)
         return applied
 
@@ -268,9 +277,10 @@ def quit_cli(applied):
 def save(name_map, req_bodies, applied, config):
     """Send HTTP requests containing all specified updates."""
     # TODO: Could probably be parallelized.
-    try:
-        i = 1
-        for body in req_bodies:
+    i = 1
+    bad_reqs = []
+    for body in req_bodies:
+        try:
             print(f"Updating integration {i} of {len(req_bodies)} ({body['name']}).")
             i += 1
             tmp = {
@@ -282,11 +292,16 @@ def save(name_map, req_bodies, applied, config):
                 tmp, constants.UPDATE, id_=name_map[body["name"]]["id"]
             )
             api_utils.request(req, constants.UPDATE)
-        return True
 
-    except Exception as e:
-        print(e)
+        except (KeyError, requests.exceptions.RequestException) as e:
+            print(e)
+            bad_reqs.append(i)
+
+    if bad_reqs:
+        print()
         return applied
+
+    return True
 
 
 def add_metrics(req_bodies, applied):
@@ -307,7 +322,7 @@ def add_metrics(req_bodies, applied):
             mlist.extend(to_add)
             body["metrics_"] = ",".join(mlist)
         return False
-    except Exception as e:
+    except KeyError as e:
         print(e)
         return applied
 
@@ -330,7 +345,7 @@ def remove_metrics(req_bodies, applied):
             new_mlist = [metric for metric in mlist if metric not in to_remove]
             body["metrics_"] = ",".join(new_mlist)
         return False
-    except Exception as e:
+    except KeyError as e:
         print(e)
         return applied
 
@@ -354,7 +369,7 @@ def change_interval(req_bodies, applied):
                         "request_interval"
                     ] = new_interval
         return False
-    except Exception as e:
+    except KeyError as e:
         print(e)
         return applied
 
@@ -367,7 +382,7 @@ def change_url(req_bodies, applied):
         for body in req_bodies:
             body["pmproxy_url_"] = new_url
         return False
-    except Exception as e:
+    except KeyError as e:
         print(e)
         return applied
 

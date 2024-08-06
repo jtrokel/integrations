@@ -128,10 +128,6 @@ def run_command(parser):
         constants.UPDATE: (update.update, ()),
     }
 
-    if cmd not in modes:
-        parser.print_help()
-        sys.exit(1)
-
     for command, (func, param_types) in modes.items():
         if cmd == command:
             params = []

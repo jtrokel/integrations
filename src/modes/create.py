@@ -12,8 +12,8 @@ def iter_nodes(config, args):
     Send an HTTP request.
     Optionally update name->id mapping.
     """
-    if args.outfile:
-        id_map = {}
+
+    id_map = {}
 
     i = 1
     for node in config["nodes"]:
@@ -28,8 +28,8 @@ def iter_nodes(config, args):
             # file_utils.expand_metrics(group)
             req = api_utils.build_request(config, constants.CREATE, group)
             mapping = api_utils.request(req, constants.CREATE)
-            if args.outfile:
-                id_map.update(mapping)
+
+            id_map.update(mapping)
 
     if args.outfile:
         file_utils.update_idmap(id_map, args)
