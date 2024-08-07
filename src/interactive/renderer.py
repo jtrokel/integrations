@@ -110,7 +110,7 @@ def cli_driver(page_list, name_map, config):
             print()  # Flush the buffer
             break
 
-    req_bodies = init_reqs(selected, name_map)
+    req_bodies = init_reqs(lselected, name_map)
     update(lselected, name_map, req_bodies, config)
 
 

@@ -230,6 +230,8 @@ def view(selected, name_map, applied):
         f"{'Interval':<10}{'pmproxy URL':<40}{'Policy ID'}"
     )
     print("-" * 23 + "|" + "-" * 106)
+
+    metrics = []
     for integration in selected:
         body = transform_body(name_map[integration], extended=True)
         for inp in body["inputs"]:
@@ -251,13 +253,11 @@ def view(selected, name_map, applied):
                     f"{interval:<10}{pmproxy_url:<40}{policy_id}"
                 )
 
+                metrics.append(body["metrics_"])
+
     print("\n\033[1mMetric Info\033[0m")
-    for integration in selected:
-        body = transform_body(name_map[integration], extended=True)
-        for inp in body["inputs"]:
-            for stream in body["inputs"][inp]["streams"]:
-                metrics = body["metrics_"]
-                print(f"{f'{integration}:':<22}{metrics}\n")
+    for i, integration in enumerate(selected):
+        print(f"{f'{integration}:':<22}{metrics[i]}\n")
 
     return applied
 
@@ -410,6 +410,7 @@ def see_updates(selected, name_map, req_bodies, applied):
         for inp in old_body["inputs"]:
             for stream in old_body["inputs"][inp]["streams"]:
 
+                # Formatting for strings colored with ANSI escapes
                 eshift = 10
                 ishift = 10
                 ushift = 40
@@ -495,6 +496,9 @@ def create_config(selected, name_map, applied):
     targets = [body for (name, body) in name_map.items() if name in selected]
 
     while targets:
+        # targets may have multiple integrations for the same host.
+        # We handle this somewhat inefficiently, by iterating through 
+        # all the targets for each hostname.
         current = targets.pop(0)
         groups = [
             {
