@@ -92,8 +92,14 @@ def build_parser():
     )
 
     # Parser for update
-    subparsers.add_parser(
+    parser_update = subparsers.add_parser(
         "update", help="Update various things about existing integrations"
+    )
+    parser_update.add_argument(
+        "-d",
+        "--allow-duplicates",
+        help="Tell integrations.py to allow adding duplicate metrics.",
+        action="store_true",
     )
 
     return parser
@@ -125,7 +131,7 @@ def run_command(parser):
         constants.CREATE: (create.create, ("args",)),
         constants.LIST: (ilist.ilist, ()),
         constants.DELETE: (delete.delete, ("args",)),
-        constants.UPDATE: (update.update, ()),
+        constants.UPDATE: (update.update, ("args",)),
     }
 
     for command, (func, param_types) in modes.items():

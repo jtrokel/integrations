@@ -5,7 +5,7 @@ from interactive import renderer, classes
 from utils import api_utils, file_utils
 
 
-def update():
+def update(args):
     """Build pages for selecting integrations, then pass control."""
     # Make map
     web_info = file_utils.read_config()
@@ -22,4 +22,4 @@ def update():
         pages.append(classes.Page(lines, line_nums))
     pl = classes.PageList(pages)
     # Display pl
-    renderer.cli_driver(pl, name_map, web_info)
+    renderer.cli_driver(pl, name_map, web_info, args)

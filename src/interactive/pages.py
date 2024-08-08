@@ -56,7 +56,6 @@ class PageList:
         self.all_line_nums = []
         self.cpage = 0
         self.selected = set()
-        self.clear_lines = 8
         self.cmd = ""
 
         i = 1
