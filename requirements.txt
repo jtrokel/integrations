@@ -1,4 +1,0 @@
-jsonschema==2.6.0
-pylint
-pytest
-requests==2.20.0

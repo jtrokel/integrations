@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from src import constants
+import constants
 
 def test_create_const():
     assert constants.CREATE == "create"

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "integrations"
+version = "0.5"
+authors = [
+    {name = "Jacob Trokel", email = "jtrokel@u.rochester.edu"},
+]
+description = "Tool for bridging the gap between Performance Co-Pilot and the Elastic Stack"
+readme = "README"
+requires-python = ">=3.6"
+keywords = ["elasticsearch", "performance co-pilot", "pcp"]
+classifiers = [
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "jsonschema",
+    "pytest",
+    "requests",
+]
+
+[tool.setuptools.packages.find]
+where = ["integrations"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests",
+]
