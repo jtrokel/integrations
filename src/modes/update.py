@@ -1,7 +1,7 @@
 """Driver for the update command.
 """
 
-from interactive import renderer, classes
+from interactive import renderer, pages
 from utils import api_utils, file_utils
 
 
@@ -15,11 +15,11 @@ def update(args):
     # Get list of integration names
     names = sorted(name_map.keys(), key=renderer.key_names)
     # Build pl
-    pages = []
+    lpages = []
     for i in range(0, len(names), 15):
         line_nums = list(range(i + 1, i + 16))
         lines = names[i : i + 15]
-        pages.append(classes.Page(lines, line_nums))
-    pl = classes.PageList(pages)
+        lpages.append(pages.Page(lines, line_nums))
+    pl = pages.PageList(lpages)
     # Display pl
     renderer.cli_driver(pl, name_map, web_info, args)

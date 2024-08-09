@@ -9,7 +9,7 @@ import json
 import requests
 
 from utils import api_utils
-from interactive import renderer, classes
+from interactive import renderer, pages
 import constants
 
 
@@ -105,9 +105,9 @@ class SelectHandler(GenericCommandHandler):
         for i in range(0, len(new_lines), 15):
             line_nums = list(range(i + 1, i + 16))
             lines = new_lines[i : i + 15]
-            new_pages.append(classes.Page(lines, line_nums))
+            new_pages.append(pages.Page(lines, line_nums))
 
-        new_pl = classes.PageList(new_pages)
+        new_pl = pages.PageList(new_pages)
         new_pl.selected = self.page_list.selected
         self.page_list.selected = renderer.selection(new_pl)
 
@@ -249,7 +249,7 @@ class UpdateHandler(GenericCommandHandler):
             for inp in body["inputs"]:
                 for stream in body["inputs"][inp]["streams"]:
                     url = re.compile(
-                        r"^http:\/\/(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$"
+                        r"^(.*?)\/pmapi\/fetch\?hostspec=(.*?)&.*&names=(.*)$"
                     )
                     match = url.match(
                         body["inputs"][inp]["streams"][stream]["vars"]["request_url"]
@@ -613,7 +613,7 @@ class UpdateHandler(GenericCommandHandler):
         )
 
 
-def transform_body(old_body, extended=False):
+def transform_body(old_body: dict, extended: bool = False):
     """Change the body of the GET response
     to something that can be sent in the update PUT request.
     """

@@ -4,10 +4,6 @@
 import re
 
 
-class ExitException(Exception):
-    """Used to check if exit command was executed."""
-
-
 class Page:
     """Each individual page containing integrations."""
 

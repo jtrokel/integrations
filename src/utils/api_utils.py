@@ -134,13 +134,12 @@ def br_update(config, id_):
     url = f"{config['kibana_url']}/api/fleet/package_policies/{id_}"
     headers = {"Authorization": f"ApiKey {config['api_key']}", "kbn-xsrf": "exists"}
 
-    url_re = re.compile(r"(https?://).*?(/p.*?spec=).*?(&client=).*?(&names=).*$")
+    url_re = re.compile(r"^.*?(/p.*?spec=).*?(&client=).*?(&names=).*$")
     for inp in config["inputs"]:
         for stream in config["inputs"][inp]["streams"]:
             old_url = config["inputs"][inp]["streams"][stream]["vars"]["request_url"]
             transformed_url = url_re.sub(
-                r"\1"
-                + config["pmproxy_url_"]
+                config["pmproxy_url_"]
                 + r"\2"
                 + config["hostname_"]
                 + r"\3"
