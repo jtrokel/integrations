@@ -15,7 +15,7 @@ import constants
 from modes import create, delete, ilist, update
 
 
-def build_parser():
+def build_parser(args=sys.argv[1:]):
     """Build the command-line argument parser."""
     parser = argparse.ArgumentParser("./integrations.py")
     subparsers = parser.add_subparsers(
@@ -36,19 +36,19 @@ def build_parser():
         " and do not make any HTTP requests.",
     )
     parser_create.add_argument(
+        "--no-outfile",
+        help="Disable the creation of a JSON file"
+        " mapping created integration names to Kibana ids",
+        action="store_false",
+        dest="outfile",
+    )
+    parser_create.add_argument(
         "-o",
         "--out",
         help="Path to output file containing mapping of"
         " created integrations' names to ids."
         " Defaults to config/id-map.json",
         default=constants.ROOT_DIR + "/config/id-map.json",
-    )
-    parser_create.add_argument(
-        "--no-outfile",
-        help="Disable the creation of a JSON file"
-        " mapping created integration names to Kibana ids",
-        action="store_false",
-        dest="outfile",
     )
 
     # Parser for list
@@ -60,11 +60,10 @@ def build_parser():
         "file", help="File containing names or ids of integrations to delete"
     )
     parser_delete.add_argument(
-        "-m",
-        "--mapfile",
-        help="File containing JSON map of integration names to ids."
-        " Defaults to config/id-map.json",
-        default=constants.ROOT_DIR + "/config/id-map.json",
+        "--check-config",
+        action="store_true",
+        help="Validate the structure of the config file"
+        " and do not make any HTTP requests.",
     )
     parser_delete.add_argument(
         "--generate-map",
@@ -73,21 +72,22 @@ def build_parser():
         action="store_true",
     )
     parser_delete.add_argument(
-        "--check-config",
+        "-i",
+        "--interactive",
+        help="Ask for confirmation before each deletion",
         action="store_true",
-        help="Validate the structure of the config file"
-        " and do not make any HTTP requests.",
+    )
+    parser_delete.add_argument(
+        "-m",
+        "--mapfile",
+        help="File containing JSON map of integration names to ids."
+        " Defaults to config/id-map.json",
+        default=constants.ROOT_DIR + "/config/id-map.json",
     )
     parser_delete.add_argument(
         "--regex",
         help="Treat integration names in file as regex"
         " when deciding which integrations to delete",
-        action="store_true",
-    )
-    parser_delete.add_argument(
-        "-i",
-        "--interactive",
-        help="Ask for confirmation before each deletion",
         action="store_true",
     )
 
@@ -102,7 +102,7 @@ def build_parser():
         action="store_true",
     )
 
-    return parser
+    return parser.parse_args(args)
 
 
 def validate_args(args):
@@ -121,11 +121,9 @@ def validate_args(args):
     # Can add more as needed
 
 
-def run_command(parser):
+def run_command(args):
     """Run the command provided by the user."""
-    args = parser.parse_args()
     validate_args(args)
-    cmd = args.command
 
     modes = {
         constants.CREATE: (create.create, ("args",)),
@@ -135,7 +133,7 @@ def run_command(parser):
     }
 
     for command, (func, param_types) in modes.items():
-        if cmd == command:
+        if args.command == command:
             params = []
             for ptype in param_types:
                 if ptype == "args":
@@ -145,9 +143,9 @@ def run_command(parser):
 
 def main():
     """The driver for integrations.py."""
-    parser = build_parser()
+    args = build_parser()
 
-    run_command(parser)
+    run_command(args)
 
 
 if __name__ == "__main__":

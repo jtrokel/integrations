@@ -1,6 +1,67 @@
 A project for working with Elastic Agent integrations to import PCP metrics from remote hosts.
 
---regex will delete names that are full matches with provided regex. Ex. foo_bar\d+ will delete
-	foo_bar1 and foo_bar22 but not fizzfoo_bar1. Additionally, if a name in the mapping is matched
-	by multiple provided regexes, integrations.py will only try to delete it once.
-	Note that backslashes in JSON have to be escaped: foo_bar\d+ should be foo_bar\\d+ in JSON.
+Program syntax: ./main.py [mode] [options]
+
+Required Files:
+    web config
+
+
+Modes:
+
+    create: Running ./main.py create requires the name of a file containing the config for which integrations to create and what they should do. See create options below. This mode will read the supplied file and create that many integrations with the specified parameters. This may take a little while. By default, this will create a file config/id-map.json containing a mapping from integration names to integration IDs, which is useful for delete mode.
+
+    delete: Running ./main.py delete requires the name of a file containing the config for which integrations to delete. See delete options below. This mode will read the supplied file and delete the specified integrations. By default, if some integrations are not found, they will just be skipped.
+
+    list: Running ./main.py list simply lists the existing integrations and whether they are enabled or not. To see additional info about integrations, run ./main.py update, then select the integrations you want to see, then run the "v" command. I will add this functionality to list at some point; sorry.
+
+    update: Running ./main.py update starts an interactive mode with two sections: first, the user selects the integrations they wish to perform updates on, and second, the user performs the updates. Sending PUT requests to Elastic is quite slow, so selected updates will only be saved locally. The user has to manually send them all at once with the "s" command.
+
+
+Create Options:
+    ./main.py create [file] [options]
+
+    file: 
+        JSON-formatted file containing info about the integrations to be created. The format of the file is as follows:
+        TODO
+
+    --check-config:
+        Validate the structure of file, and do not make any HTTP requests.
+
+    --no-outfile:
+        Disable the creation of the output JSON file mapping integration names to ids. 
+
+    -o, --out:
+        Custom path to output JSON file mapping integration names to ids. If not specified, this will default to config/id-map.json.
+
+
+Delete Options:
+    ./main.py delete [file] [options]
+
+    file:
+        JSON-formatted file containing a list of the integrations to be deleted. The format of the file is as follows:
+        TODO
+    
+    --check-config:
+        Validate the structure of file, and do not make any HTTP requests.
+
+    --generate-map:
+        Instead of reading an integration name to id mapping from a file, generate it directly from Elastic.
+
+    -i, --interactive:
+        Ask for confirmation before each deletion.
+
+    -m, --mapfile:
+        Path to file containing JSON map of integration names to ids. Defaults to config/id-map.json.
+
+    --regex: Treat integration names in file as regex. This program will delete integrations that have names which are full matches with a provided regex. Note that backslashes in JSON strings have to be escaped: foobar\d+ should be foobar\\d+ in a string.
+
+
+List Options:
+    ./main.py list
+
+
+Update Options:
+    ./main.py update [options]
+
+    -d, --allow-duplicates:
+        Allow update mode to add duplicate metrics to selected integrations using the "a" command. If a metric that is removed using the "r" command is duplicate, all copies of it in the metrics string will be removed.
