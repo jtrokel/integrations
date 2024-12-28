@@ -1,5 +1,7 @@
 A project for working with Elastic Agent integrations to import PCP metrics from remote hosts.
 
+KNOWN ISSUES/TODO: Does not correctly handle paginated responses from Elastic.
+
 Program syntax: ./main.py [mode] [options]
 
 Required Files:
